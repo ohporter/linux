@@ -144,6 +144,7 @@ obj-$(CONFIG_SOC_AM33XX)		+= powerdomains33xx_data.o
 obj-$(CONFIG_SOC_OMAP5)			+= $(powerdomain-common)
 obj-$(CONFIG_SOC_TI81XX)		+= $(powerdomain-common)
 obj-$(CONFIG_SOC_TI81XX)		+= powerdomain81xx.o
+obj-$(CONFIG_SOC_TI81XX)		+= powerdomain81xx_data.o
 
 # PRCM clockdomain control
 clockdomain-common			+= clockdomain.o
