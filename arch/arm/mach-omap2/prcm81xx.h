@@ -203,5 +203,10 @@ extern u8 ti81xx_prcm_pwrdm_read_logicstatest(u16 offs);
 extern u8 ti81xx_prcm_pwrdm_read_mem_statest(u16 offs);
 extern void ti81xx_prcm_pwrdm_set_lowpowerstatechange(u16 offs);
 extern int ti81xx_prcm_pwrdm_wait_transition(u16 offs);
+extern void ti81xx_prcm_clkdm_enable_hwsup(s16 inst, u16 offs);
+extern void ti81xx_prcm_clkdm_disable_hwsup(s16 inst, u16 offs);
+extern void ti81xx_prcm_clkdm_force_sleep(s16 inst, u16 offs);
+extern void ti81xx_prcm_clkdm_force_wakeup(s16 inst, u16 offs);
+extern bool ti81xx_prcm_is_clkdm_in_hwsup(s16 inst, u16 offs);
 
 #endif

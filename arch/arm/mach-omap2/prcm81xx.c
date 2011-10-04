@@ -2,6 +2,8 @@
  * TI81XX PRCM register access functions
  *
  * Copyright (C) 2010-2011 Texas Instruments, Inc. - http://www.ti.com/
+ * Hemant Pedanekar
+ * Paul Walmsley
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -26,6 +28,9 @@
 #include "prm.h"
 
 #include "prm-regbits-44xx.h"
+
+#include "cm-regbits-34xx.h"
+#include "cm-regbits-44xx.h"
 
 /* prm_base = cm_base on TI81xx, so either is fine */
 
@@ -122,4 +127,58 @@ int ti81xx_prcm_pwrdm_wait_transition(u16 offs)
 		c = INT_MAX;
 
 	return (c <= PWRDM_TRANSITION_BAILOUT) ? c : -ETIMEDOUT;
+}
+
+void ti81xx_prcm_clkdm_enable_hwsup(s16 inst, u16 offs)
+{
+	u32 v;
+
+	v = ti81xx_prcm_inst_read(inst, offs);
+	v &= ~OMAP4430_CLKTRCTRL_MASK;
+	v |= OMAP34XX_CLKSTCTRL_ENABLE_AUTO << OMAP4430_CLKTRCTRL_SHIFT;
+	ti81xx_prcm_inst_write(v, inst, offs);
+
+}
+
+void ti81xx_prcm_clkdm_disable_hwsup(s16 inst, u16 offs)
+{
+	u32 v;
+
+	v = ti81xx_prcm_inst_read(inst, offs);
+	v &= ~OMAP4430_CLKTRCTRL_MASK;
+	v |= OMAP34XX_CLKSTCTRL_DISABLE_AUTO << OMAP4430_CLKTRCTRL_SHIFT;
+	ti81xx_prcm_inst_write(v, inst, offs);
+}
+
+void ti81xx_prcm_clkdm_force_sleep(s16 inst, u16 offs)
+{
+	u32 v;
+
+	v = ti81xx_prcm_inst_read(inst, offs);
+	v &= ~OMAP4430_CLKTRCTRL_MASK;
+	v |= OMAP34XX_CLKSTCTRL_FORCE_SLEEP << OMAP4430_CLKTRCTRL_SHIFT;
+	ti81xx_prcm_inst_write(v, inst, offs);
+}
+
+void ti81xx_prcm_clkdm_force_wakeup(s16 inst, u16 offs)
+{
+	u32 v;
+
+	v = ti81xx_prcm_inst_read(inst, offs);
+	v &= ~OMAP4430_CLKTRCTRL_MASK;
+	v |= OMAP34XX_CLKSTCTRL_FORCE_WAKEUP << OMAP4430_CLKTRCTRL_SHIFT;
+	ti81xx_prcm_inst_write(v, inst, offs);
+}
+
+bool ti81xx_prcm_is_clkdm_in_hwsup(s16 inst, u16 offs)
+{
+	u32 v;
+	bool ret = 0;
+
+	v = ti81xx_prcm_inst_read(inst, offs);
+	v &= OMAP4430_CLKTRCTRL_MASK;
+	v >>= OMAP4430_CLKTRCTRL_SHIFT;
+	ret = (v == OMAP34XX_CLKSTCTRL_ENABLE_AUTO) ? 1 : 0;
+
+	return ret;
 }
