@@ -188,6 +188,20 @@
 #define TI81XX_CM_ALWON_SR_1_CLKCTRL_OFFSET		0x020C
 #define TI81XX_CM_ALWON_SR_1_CLKCTRL			TI81XX_CM_REGADDR(TI81XX_CM_ALWON_INST, 0x020C)
 
+/*
+ * Register offset aliases (for clearer code, at least in theory)
+ */
+#define TI81XX_PM_PWRSTCTRL_OFFSET			TI81XX_PRM_ACTIVE_PM_PWRSTCTRL_OFFSET
+#define TI81XX_PM_PWRSTST_OFFSET			TI81XX_PRM_ACTIVE_PM_PWRSTST_OFFSET
+
 /* Function prototypes */
+
+extern void ti81xx_prcm_pwrdm_set_powerstate(u16 offs, u8 pwrst);
+extern u8 ti81xx_prcm_pwrdm_read_powerstate(u16 offs);
+extern u8 ti81xx_prcm_pwrdm_read_powerstatest(u16 offs);
+extern u8 ti81xx_prcm_pwrdm_read_logicstatest(u16 offs);
+extern u8 ti81xx_prcm_pwrdm_read_mem_statest(u16 offs);
+extern void ti81xx_prcm_pwrdm_set_lowpowerstatechange(u16 offs);
+extern int ti81xx_prcm_pwrdm_wait_transition(u16 offs);
 
 #endif
