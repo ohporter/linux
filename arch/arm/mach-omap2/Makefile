@@ -162,6 +162,7 @@ obj-$(CONFIG_SOC_AM33XX)		+= clockdomains33xx_data.o
 obj-$(CONFIG_SOC_OMAP5)			+= $(clockdomain-common)
 obj-$(CONFIG_SOC_TI81XX)		+= $(clockdomain-common)
 obj-$(CONFIG_SOC_TI81XX)		+= clockdomain81xx.o
+obj-$(CONFIG_SOC_TI81XX)		+= clockdomain81xx_data.o
 
 # Clock framework
 obj-$(CONFIG_ARCH_OMAP2)		+= $(clock-common) clock2xxx.o
