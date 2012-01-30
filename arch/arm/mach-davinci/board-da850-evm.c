@@ -63,6 +63,12 @@
 #define DA850_USB1_VBUS_PIN		GPIO_TO_PIN(2, 4)
 #define DA850_USB1_OC_PIN		GPIO_TO_PIN(6, 13)
 
+static struct davinci_spi_platform_data da850evm_spi1_pdata = {
+        .version        = SPI_VERSION_2,
+        .num_chipselect = 1,
+        .intr_line      = 1,
+};
+
 static struct mtd_partition da850_evm_norflash_partition[] = {
 	{
 		.name           = "bootloaders + env",
@@ -221,7 +227,7 @@ static struct platform_device *da850_evm_devices[] __initdata = {
 	&da850_evm_norflash_device,
 };
 
-static struct mtd_partition spi_flash_partitions[] = {
+static struct mtd_partition da850evm_spiflash_part[] = {
 	[0] = {
 		.name = "U-Boot",
 		.offset = 0,
@@ -250,23 +256,42 @@ static struct mtd_partition spi_flash_partitions[] = {
 	},
 };
 
-static struct flash_platform_data spi_flash_data = {
-	.name = "m25p80",
-	.parts = spi_flash_partitions,
-	.nr_parts = ARRAY_SIZE(spi_flash_partitions),
-	.type = "m25p64",
+static struct flash_platform_data da850evm_spiflash_data = {
+	.name		= "m25p80",
+	.parts		= da850evm_spiflash_part,
+	.nr_parts	= ARRAY_SIZE(da850evm_spiflash_part),
+};
+
+static struct davinci_spi_config da850evm_spiflash_cfg = {
+	.io_type	= SPI_IO_TYPE_DMA,
+	.c2tdelay	= 8,
+	.t2cdelay	= 8,
 };
 
 static struct spi_board_info da850_spi_board_info[] = {
-	[0] = {
-		.modalias = "m25p80",
-		.platform_data = &spi_flash_data,
-		.mode = SPI_MODE_0,
-		.max_speed_hz = 30000000,       /* max sample rate at 3V */
-		.bus_num = 1,
-		.chip_select = 0,
+	{
+		.modalias		= "m25p80",
+		.platform_data		= &da850evm_spiflash_data,
+		.controller_data	= &da850evm_spiflash_cfg,
+		.mode			= SPI_MODE_0,
+		.max_speed_hz		= 30000000,
+		.bus_num		= 1,
+		.chip_select		= 0,
 	},
 };
+
+static void __init da850evm_init_spi1(struct spi_board_info *info, unsigned len)
+{
+        int ret;
+
+        ret = spi_register_board_info(info, len);
+        if (ret)
+                pr_warning("failed to register board info : %d\n", ret);
+
+        ret = da8xx_register_spi(1, &da850evm_spi1_pdata);
+        if (ret)
+                pr_warning("failed to register spi 1 device : %d\n", ret);
+}
 
 static u32 ui_card_detected;
 
@@ -1054,11 +1079,62 @@ static struct platform_device da850_gpio_i2c = {
 	},
 };
 
+/*
+ * The following EDMA channels/slots are not being used by drivers (for
+ * example: Timer, GPIO, UART events etc) on da850/omap-l138 EVM, hence
+ * they are being reserved for codecs on the DSP side.
+ */
+static const s16 da850_dma0_rsv_chans[][2] = {
+        /* (offset, number) */
+        { 8,  6},
+        {24,  4},
+        {30,  2},
+        {-1, -1}
+};
+
+static const s16 da850_dma0_rsv_slots[][2] = {
+        /* (offset, number) */
+        { 8,  6},
+        {24,  4},
+        {30, 50},
+        {-1, -1}
+};
+
+static const s16 da850_dma1_rsv_chans[][2] = {
+        /* (offset, number) */
+        { 0, 28},
+        {30,  2},
+        {-1, -1}
+};
+
+static const s16 da850_dma1_rsv_slots[][2] = {
+        /* (offset, number) */
+        { 0, 28},
+        {30, 90},
+        {-1, -1}
+};
+
+static struct edma_rsv_info da850_edma_cc0_rsv = {
+        .rsv_chans      = da850_dma0_rsv_chans,
+        .rsv_slots      = da850_dma0_rsv_slots,
+};
+
+static struct edma_rsv_info da850_edma_cc1_rsv = {
+        .rsv_chans      = da850_dma1_rsv_chans,
+        .rsv_slots      = da850_dma1_rsv_slots,
+};
+
+static struct edma_rsv_info *da850_edma_rsv[2] = {
+        &da850_edma_cc0_rsv,
+        &da850_edma_cc1_rsv,
+};
+
+
 static __init void da850_evm_init(void)
 {
 	int ret;
 
-	ret = da8xx_register_edma();
+	ret = da850_register_edma(da850_edma_rsv);
 	if (ret)
 		pr_warning("da850_evm_init: edma registration failed: %d\n",
 				ret);
@@ -1214,7 +1290,7 @@ static __init void da850_evm_init(void)
 		pr_warning("da850_evm_init: spi1 mux setup failed: %d\n",
 				ret);
 
-	da850_init_spi1(BIT(0), da850_spi_board_info,
+	da850evm_init_spi1(da850_spi_board_info,
 			ARRAY_SIZE(da850_spi_board_info));
 
 	da850_evm_usb_init();

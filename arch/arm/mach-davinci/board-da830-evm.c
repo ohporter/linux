@@ -430,7 +430,13 @@ static inline void da830_evm_init_nand(int mux_mode)
 static inline void da830_evm_init_nand(int mux_mode) { }
 #endif
 
-static struct mtd_partition spi_flash_partitions[] = {
+static struct davinci_spi_platform_data da830evm_spi0_pdata = {
+	.version	= SPI_VERSION_2,
+	.num_chipselect	= 1,
+	.intr_line	= 1,
+};
+
+static struct mtd_partition da830evm_spiflash_part[] = {
 	[0] = {
 		.name = "U-Boot",
 		.offset = 0,
@@ -451,23 +457,42 @@ static struct mtd_partition spi_flash_partitions[] = {
 	},
 };
 
-static struct flash_platform_data spi_flash_data = {
-	.name = "m25p80",
-	.parts = spi_flash_partitions,
-	.nr_parts = ARRAY_SIZE(spi_flash_partitions),
-	.type = "w25x32",
+static struct flash_platform_data da830evm_spiflash_data = {
+	.name		= "m25p80",
+	.parts		= da830evm_spiflash_part,
+	.nr_parts	= ARRAY_SIZE(da830evm_spiflash_part),
+};
+
+static struct davinci_spi_config da830evm_spiflash_cfg = {
+	.io_type	= SPI_IO_TYPE_DMA,
+	.c2tdelay	= 8,
+	.t2cdelay	= 8,
 };
 
 static struct spi_board_info da830_spi_board_info[] = {
-	[0] = {
+	{
 		.modalias = "m25p80",
-		.platform_data = &spi_flash_data,
+		.platform_data = &da830evm_spiflash_data,
+		.controller_data = &da830evm_spiflash_cfg,
 		.mode = SPI_MODE_0,
 		.max_speed_hz = 30000000,       /* max sample rate at 3V */
 		.bus_num = 0,
 		.chip_select = 0,
 	},
 };
+
+static void __init da830evm_init_spi0(struct spi_board_info *info, unsigned len)
+{
+	int ret;
+
+	ret = spi_register_board_info(info, len);
+	if (ret)
+		pr_warning("failed to register board info : %d\n", ret);
+
+	ret = da8xx_register_spi(0, &da830evm_spi0_pdata);
+	if (ret)
+		pr_warning("failed to register spi 0 device : %d\n", ret);
+}
 
 #ifdef CONFIG_DA830_UI_LCD
 static int da830_lcd_hw_init(void)
@@ -681,12 +706,42 @@ static struct davinci_i2c_platform_data da830_evm_i2c_0_pdata = {
 	.bus_delay	= 0,	/* usec */
 };
 
+/*
+ * The following EDMA channels/slots are not being used by drivers (for
+ * example: Timer, GPIO, UART events etc) on da830/omap-l137 EVM, hence
+ * they are being reserved for codecs on the DSP side.
+ */
+static const s16 da830_dma_rsv_chans[][2] = {
+	/* (offset, number) */
+	{ 8,  2},
+	{12,  2},
+	{24,  4},
+	{30,  2},
+	{-1, -1}
+};
+
+static const s16 da830_dma_rsv_slots[][2] = {
+	/* (offset, number) */
+	{ 8,  2},
+	{12,  2},
+	{24,  4},
+	{30, 26},
+	{-1, -1}
+};
+
+static struct edma_rsv_info da830_edma_rsv[] = {
+	{
+		.rsv_chans	= da830_dma_rsv_chans,
+		.rsv_slots	= da830_dma_rsv_slots,
+	},
+};
+
 static __init void da830_evm_init(void)
 {
 	struct davinci_soc_info *soc_info = &davinci_soc_info;
 	int ret;
 
-	ret = da8xx_register_edma();
+	ret = da830_register_edma(da830_edma_rsv);
 	if (ret)
 		pr_warning("da830_evm_init: edma registration failed: %d\n",
 				ret);
@@ -747,7 +802,7 @@ static __init void da830_evm_init(void)
 		pr_warning("da830_evm_init: spi0 mux setup failed: %d\n",
 				ret);
 
-	da830_init_spi0(BIT(0), da830_spi_board_info,
+	da830evm_init_spi0(da830_spi_board_info,
 			ARRAY_SIZE(da830_spi_board_info));
 }
 

@@ -25,6 +25,7 @@
 #include <mach/usb.h>
 #include <mach/pm.h>
 #include <mach/mcbsp.h>
+#include <mach/spi.h>
 #include <mach/vpif.h>
 #include <mach/cputype.h>
 
@@ -135,7 +136,8 @@ static inline int cpu_is_davinci_da8xx_arm_only(void)
 void __init da830_init(void);
 void __init da850_init(void);
 
-int da8xx_register_edma(void);
+int da830_register_edma(struct edma_rsv_info *rsv);
+int da850_register_edma(struct edma_rsv_info *rsv[2]);
 int da8xx_register_i2c(int instance, struct davinci_i2c_platform_data *pdata);
 int da8xx_register_watchdog(void);
 int da8xx_register_usb20(unsigned mA, unsigned potpgt);
@@ -149,10 +151,8 @@ int da850_register_cpufreq(void);
 int da8xx_register_cpuidle(void);
 void __iomem * __init da8xx_get_mem_ctlr(void);
 int da850_register_pm(struct platform_device *pdev);
-void da850_init_spi1(unsigned chipselect_mask,
-	struct spi_board_info *info, unsigned len);
-void da830_init_spi0(unsigned chipselect_mask,
-	struct spi_board_info *info, unsigned len);
+int da8xx_register_spi(int instance, struct davinci_spi_platform_data *pdata);
+void da830_init_spi0(struct spi_board_info *info, unsigned len);
 int da850_init_mcbsp(struct davinci_mcbsp_platform_data *pdata);
 int __init da850_register_vpif(void);
 int __init da850_register_vpif_display(struct vpif_display_config
@@ -161,7 +161,7 @@ int __init da850_register_vpif_capture(struct vpif_capture_config
 							*capture_config);
 
 int cppi41_init(void);
-int da8xx_register_sata(void);
+int __init da8xx_register_sata(void);
 
 
 extern struct platform_device da8xx_serial_device;
