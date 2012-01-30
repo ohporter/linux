@@ -42,6 +42,8 @@
 
 #include <media/tvp514x.h>
 
+#include <video/st7586fb.h>
+
 #define DA850_EVM_PHY_MASK		0x1
 #define DA850_EVM_MDIO_FREQUENCY	2200000 /* PHY bus frequency */
 
@@ -227,54 +229,25 @@ static struct platform_device *da850_evm_devices[] __initdata = {
 	&da850_evm_norflash_device,
 };
 
-static struct mtd_partition da850evm_spiflash_part[] = {
-	[0] = {
-		.name = "U-Boot",
-		.offset = 0,
-		.size = SZ_256K,
-		.mask_flags = MTD_WRITEABLE,
-	},
-	[1] = {
-		.name = "U-Boot Environment",
-		.offset = MTDPART_OFS_APPEND,
-		.size = SZ_64K,
-		.mask_flags = MTD_WRITEABLE,
-	},
-	[2] = {
-		.name = "Linux",
-		.offset = MTDPART_OFS_NXTBLK,
-		.size = SZ_8M - (SZ_256K + SZ_64K + SZ_64K),
-		.mask_flags = 0,
-	},
-	[3] = {
-		.name = "MAC Address",
-		.offset = MTDPART_OFS_NXTBLK,
-		.size = SZ_64K,
-		.mask_flags = MTD_WRITEABLE,
-		.setup = davinci_get_mac_addr,
-		.context = (void *)0,
-	},
+static const struct st7586fb_platform_data generic_st7586fb_data = {
+	.rst_gpio	= GPIO_TO_PIN(5, 0),
+	.a0_gpio	= GPIO_TO_PIN(2, 11),
+	.cs_gpio	= GPIO_TO_PIN(2, 12),
 };
 
-static struct flash_platform_data da850evm_spiflash_data = {
-	.name		= "m25p80",
-	.parts		= da850evm_spiflash_part,
-	.nr_parts	= ARRAY_SIZE(da850evm_spiflash_part),
-};
-
-static struct davinci_spi_config da850evm_spiflash_cfg = {
+static struct davinci_spi_config generic_st7586fb_cfg = {
 	.io_type	= SPI_IO_TYPE_DMA,
-	.c2tdelay	= 8,
-	.t2cdelay	= 8,
+	.c2tdelay	= 10,
+	.t2cdelay	= 10,
 };
 
 static struct spi_board_info da850_spi_board_info[] = {
 	{
-		.modalias		= "m25p80",
-		.platform_data		= &da850evm_spiflash_data,
-		.controller_data	= &da850evm_spiflash_cfg,
-		.mode			= SPI_MODE_0,
-		.max_speed_hz		= 30000000,
+		.modalias		= "generic_lcd",
+		.platform_data		= &generic_st7586fb_data,
+		.controller_data	= &generic_st7586fb_cfg,
+		.mode			= SPI_MODE_3 | SPI_NO_CS,
+		.max_speed_hz		= 10000000,
 		.bus_num		= 1,
 		.chip_select		= 0,
 	},
@@ -1129,6 +1102,10 @@ static struct edma_rsv_info *da850_edma_rsv[2] = {
         &da850_edma_cc1_rsv,
 };
 
+static const short da850_generic_lcd_pins[] = {
+	DA850_GPIO2_11, DA850_GPIO2_12, DA850_GPIO5_0,
+	-1
+};
 
 static __init void da850_evm_init(void)
 {
@@ -1288,6 +1265,11 @@ static __init void da850_evm_init(void)
 	ret = da8xx_pinmux_setup(da850_spi1_pins);
 	if (ret)
 		pr_warning("da850_evm_init: spi1 mux setup failed: %d\n",
+				ret);
+
+	ret = da8xx_pinmux_setup(da850_generic_lcd_pins);
+	if (ret)
+		pr_warning("da850_evm_init: generic lcd mux setup failed: %d\n",
 				ret);
 
 	da850evm_init_spi1(da850_spi_board_info,
