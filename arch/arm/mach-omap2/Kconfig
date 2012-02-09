@@ -211,6 +211,7 @@ config MACH_OMAP3517EVM
 config MACH_CRANEBOARD
 	bool "AM3517/05 CRANE board"
 	depends on ARCH_OMAP3
+	default y
 	select OMAP_PACKAGE_CBB
 
 config MACH_OMAP3_PANDORA
