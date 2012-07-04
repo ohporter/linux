@@ -290,5 +290,10 @@
 			usb0-phy = <&usb0_phy>;
 			usb1-phy = <&usb1_phy>;
 		};
+
+		wdt2: wdt@44e35000 {
+			compatible = "ti,omap3-wdt";
+			ti,hwmods = "wd_timer2";
+		};
 	};
 };
