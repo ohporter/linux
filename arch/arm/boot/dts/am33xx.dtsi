@@ -355,5 +355,41 @@
 			ti,hwmods = "spi1";
 			status = "disabled";
 		};
+
+		ehrpwm0: ehrpwm@48300200 {
+			compatible	= "ti,ehrpwm";
+			ti,hwmods = "ehrpwm0";
+			#pwm-cells = <3>;
+		};
+
+		ehrpwm1: ehrpwm@48302200 {
+			compatible	= "ti,ehrpwm";
+			ti,hwmods = "ehrpwm1";
+			#pwm-cells = <3>;
+		};
+
+		ehrpwm2: ehrpwm@48304200 {
+			compatible	= "ti,ehrpwm";
+			ti,hwmods = "ehrpwm2";
+			#pwm-cells = <3>;
+		};
+
+		ecap0: ecap@48300100 {
+			compatible	= "ti,ecap";
+			ti,hwmods = "ecap0";
+			#pwm-cells = <3>;
+		};
+
+		ecap1: ecap@48302100 {
+			compatible	= "ti,ecap";
+			ti,hwmods = "ecap1";
+			#pwm-cells = <3>;
+		};
+
+		ecap2: ecap@48304100 {
+			compatible	= "ti,ecap";
+			ti,hwmods = "ecap2";
+			#pwm-cells = <3>;
+		};
 	};
 };
