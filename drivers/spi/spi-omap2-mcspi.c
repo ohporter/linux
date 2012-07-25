@@ -129,6 +129,7 @@ struct omap2_mcspi {
 	struct omap2_mcspi_dma	*dma_channels;
 	struct device		*dev;
 	struct omap2_mcspi_regs ctx;
+	int dma_unusable;
 };
 
 struct omap2_mcspi_cs {
@@ -845,7 +846,7 @@ static int omap2_mcspi_setup(struct spi_device *spi)
 	if (!mcspi_dma->dma_rx || !mcspi_dma->dma_tx) {
 		ret = omap2_mcspi_request_dma(spi);
 		if (ret < 0)
-			return ret;
+			mcspi->dma_unusable = 1;
 	}
 
 	ret = omap2_mcspi_enable_clocks(mcspi);
@@ -956,7 +957,8 @@ static void omap2_mcspi_work(struct omap2_mcspi *mcspi, struct spi_message *m)
 				__raw_writel(0, cs->base
 						+ OMAP2_MCSPI_TX0);
 
-			if (m->is_dma_mapped || t->len >= DMA_MIN_BYTES)
+			if (!mcspi->dma_unusable && (m->is_dma_mapped ||
+						t->len >= DMA_MIN_BYTES))
 				count = omap2_mcspi_txrx_dma(spi, t);
 			else
 				count = omap2_mcspi_txrx_pio(spi, t);
@@ -1030,7 +1032,8 @@ static int omap2_mcspi_transfer_one_message(struct spi_master *master,
 			return -EINVAL;
 		}
 
-		if (m->is_dma_mapped || len < DMA_MIN_BYTES)
+		if (mcspi->dma_unusable || m->is_dma_mapped ||
+					len < DMA_MIN_BYTES)
 			continue;
 
 		if (tx_buf != NULL) {
@@ -1054,6 +1057,7 @@ static int omap2_mcspi_transfer_one_message(struct spi_master *master,
 				return -EINVAL;
 			}
 		}
+
 	}
 
 	omap2_mcspi_work(mcspi, m);
@@ -1216,9 +1220,12 @@ static int __devinit omap2_mcspi_probe(struct platform_device *pdev)
 		mcspi->dma_channels[i].dma_tx_sync_dev = dma_res->start;
 	}
 
-	if (status < 0)
-		goto dma_chnl_free;
-
+	if (status < 0) {
+		dev_err(&pdev->dev, "cannot get DMA channel switching to pio\n");
+		mcspi->dma_unusable = 1;
+		status = 0;
+		kfree(mcspi->dma_channels);
+	}
 	pm_runtime_use_autosuspend(&pdev->dev);
 	pm_runtime_set_autosuspend_delay(&pdev->dev, SPI_AUTOSUSPEND_TIMEOUT);
 	pm_runtime_enable(&pdev->dev);
@@ -1234,7 +1241,6 @@ static int __devinit omap2_mcspi_probe(struct platform_device *pdev)
 
 disable_pm:
 	pm_runtime_disable(&pdev->dev);
-dma_chnl_free:
 	kfree(mcspi->dma_channels);
 free_master:
 	spi_master_put(master);
