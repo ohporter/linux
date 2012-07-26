@@ -795,7 +795,7 @@ static struct omap_hwmod_irq_info am33xx_ehrpwm0_irqs[] = {
 };
 
 static struct omap_hwmod am33xx_ehrpwm0_hwmod = {
-	.name		= "ehrpwm.0",
+	.name		= "ehrpwm0",
 	.class		= &am33xx_epwmss_hwmod_class,
 	.clkdm_name	= "l4ls_clkdm",
 	.mpu_irqs	= am33xx_ehrpwm0_irqs,
@@ -816,7 +816,7 @@ static struct omap_hwmod_irq_info am33xx_ehrpwm1_irqs[] = {
 };
 
 static struct omap_hwmod am33xx_ehrpwm1_hwmod = {
-	.name		= "ehrpwm.1",
+	.name		= "ehrpwm1",
 	.class		= &am33xx_epwmss_hwmod_class,
 	.clkdm_name	= "l4ls_clkdm",
 	.mpu_irqs	= am33xx_ehrpwm1_irqs,
@@ -837,7 +837,7 @@ static struct omap_hwmod_irq_info am33xx_ehrpwm2_irqs[] = {
 };
 
 static struct omap_hwmod am33xx_ehrpwm2_hwmod = {
-	.name		= "ehrpwm.2",
+	.name		= "ehrpwm2",
 	.class		= &am33xx_epwmss_hwmod_class,
 	.clkdm_name	= "l4ls_clkdm",
 	.mpu_irqs	= am33xx_ehrpwm2_irqs,
@@ -857,7 +857,7 @@ static struct omap_hwmod_irq_info am33xx_ecap0_irqs[] = {
 };
 
 static struct omap_hwmod am33xx_ecap0_hwmod = {
-	.name		= "ecap.0",
+	.name		= "ecap0",
 	.class		= &am33xx_epwmss_hwmod_class,
 	.clkdm_name	= "l4ls_clkdm",
 	.mpu_irqs	= am33xx_ecap0_irqs,
@@ -877,7 +877,7 @@ static struct omap_hwmod_irq_info am33xx_ecap1_irqs[] = {
 };
 
 static struct omap_hwmod am33xx_ecap1_hwmod = {
-	.name		= "ecap.1",
+	.name		= "ecap1",
 	.class		= &am33xx_epwmss_hwmod_class,
 	.clkdm_name	= "l4ls_clkdm",
 	.mpu_irqs	= am33xx_ecap1_irqs,
@@ -897,7 +897,7 @@ static struct omap_hwmod_irq_info am33xx_ecap2_irqs[] = {
 };
 
 static struct omap_hwmod am33xx_ecap2_hwmod = {
-	.name		= "ecap.2",
+	.name		= "ecap2",
 	.mpu_irqs	= am33xx_ecap2_irqs,
 	.class		= &am33xx_epwmss_hwmod_class,
 	.clkdm_name	= "l4ls_clkdm",
