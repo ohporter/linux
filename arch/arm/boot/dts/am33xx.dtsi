@@ -270,6 +270,21 @@
 
 		};
 
+		mmc1: mmc@48060000 {
+			compatible = "ti,omap3-hsmmc";
+			ti,hwmods = "mmc1";
+		};
+
+		mmc2: mmc@481D8000 {
+			compatible = "ti,omap3-hsmmc";
+			ti,hwmods = "mmc2";
+		};
+
+		mmc3: mmc@47810000 {
+			compatible = "ti,omap3-hsmmc";
+			ti,hwmods = "mmc3";
+		};
+
 		usb0_phy: phy0 {
 			compatible = "nop-xceiv-usb";
 		};
