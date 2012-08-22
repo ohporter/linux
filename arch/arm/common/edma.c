@@ -1538,6 +1538,7 @@ static int __init edma_probe(struct platform_device *pdev)
 		arch_num_cc++;
 	}
 
+#if 0
 	if (tc_errs_handled) {
 		status = request_irq(IRQ_TCERRINT0, dma_tc0err_handler, 0,
 					"edma_tc0", &pdev->dev);
@@ -1554,6 +1555,7 @@ static int __init edma_probe(struct platform_device *pdev)
 			return status;
 		}
 	}
+#endif
 
 	return 0;
 
