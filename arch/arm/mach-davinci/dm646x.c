@@ -14,10 +14,10 @@
 #include <linux/serial_8250.h>
 #include <linux/platform_device.h>
 
+#include <asm/mach/edma.h>
 #include <asm/mach/map.h>
 
 #include <mach/cputype.h>
-#include <mach/edma.h>
 #include <mach/irqs.h>
 #include <mach/psc.h>
 #include <mach/mux.h>
