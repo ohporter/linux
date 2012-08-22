@@ -14,12 +14,13 @@
 #include <linux/dma-mapping.h>
 #include <linux/io.h>
 
+#include <asm/mach/edma.h>
+
 #include <mach/hardware.h>
 #include <mach/i2c.h>
 #include <mach/irqs.h>
 #include <mach/cputype.h>
 #include <mach/mux.h>
-#include <mach/edma.h>
 #include <mach/mmc.h>
 #include <mach/time.h>
 
