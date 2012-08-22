@@ -17,8 +17,9 @@
 #include <linux/davinci_emac.h>
 #include <linux/spi/spi.h>
 
+#include <asm/mach/edma.h>
+
 #include <mach/serial.h>
-#include <mach/edma.h>
 #include <mach/i2c.h>
 #include <mach/asp.h>
 #include <mach/mmc.h>
