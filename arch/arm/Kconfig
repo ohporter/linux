@@ -911,6 +911,7 @@ config ARCH_DAVINCI
 	select GENERIC_IRQ_CHIP
 	select ARCH_HAS_HOLES_MEMORYMODEL
 	select NEED_MACH_GPIO_H
+	select TI_PRIV_EDMA
 	help
 	  Support for TI's DaVinci platform.
 
