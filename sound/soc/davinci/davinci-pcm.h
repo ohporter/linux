@@ -12,7 +12,7 @@
 #ifndef _DAVINCI_PCM_H
 #define _DAVINCI_PCM_H
 
-#include <mach/edma.h>
+#include <asm/mach/edma.h>
 #include <mach/asp.h>
 
 
