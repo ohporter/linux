@@ -25,7 +25,7 @@
 #include <linux/io.h>
 #include <linux/slab.h>
 
-#include <mach/edma.h>
+#include <linux/platform_data/edma.h>
 
 /* Offsets matching "struct edmacc_param" */
 #define PARM_OPT		0x00
@@ -1386,8 +1386,213 @@ void edma_clear_event(unsigned channel)
 EXPORT_SYMBOL(edma_clear_event);
 
 /*-----------------------------------------------------------------------*/
+static int edma_of_read_u32_to_s8_array(const struct device_node *np,
+					 const char *propname, s8 *out_values,
+					 size_t sz)
+{
+	int ret;
 
-static int __init edma_probe(struct platform_device *pdev)
+	ret = of_property_read_u8_array(np, propname, out_values, sz);
+	if (ret)
+		return ret;
+
+	/* Terminate it */
+	*out_values++ = -1;
+	*out_values++ = -1;
+
+	return 0;
+}
+
+static int edma_of_read_u32_to_s16_array(const struct device_node *np,
+					 const char *propname, s16 *out_values,
+					 size_t sz)
+{
+	int ret;
+
+	ret = of_property_read_u16_array(np, propname, out_values, sz);
+	if (ret)
+		return ret;
+
+	/* Terminate it */
+	*out_values++ = -1;
+	*out_values++ = -1;
+
+	return 0;
+}
+
+static int edma_xbar_event_map(struct device *dev,
+			       struct device_node *node,
+			       struct edma_soc_info *pdata, int len)
+{
+	int ret = 0;
+	int i;
+	struct resource res;
+	void *xbar;
+	const s16 (*xbar_chans)[2];
+	u32 shift, offset, mux;
+
+	xbar_chans = devm_kzalloc(dev,
+				  len/sizeof(s16) + 2*sizeof(s16),
+				  GFP_KERNEL);
+	if (!xbar_chans)
+		return -ENOMEM;
+
+	ret = of_address_to_resource(node, 1, &res);
+	if (IS_ERR_VALUE(ret))
+		return -EIO;
+
+	xbar = devm_ioremap(dev, res.start, resource_size(&res));
+	if (!xbar)
+		return -ENOMEM;
+
+	ret = edma_of_read_u32_to_s16_array(node,
+					    "ti,edma-xbar-event-map",
+					    (s16 *)xbar_chans,
+					    len/sizeof(u32));
+	if (IS_ERR_VALUE(ret))
+		return -EIO;
+
+	for (i = 0; xbar_chans[i][0] != -1; i++) {
+		shift = (xbar_chans[i][1] % 4) * 8;
+		offset = xbar_chans[i][1] >> 2;
+		offset <<= 2;
+		mux = readl((void *)((u32)xbar + offset));
+		mux &= ~(0xff << shift);
+		mux |= xbar_chans[i][0] << shift;
+		writel(mux, (void *)((u32)xbar + offset));
+	}
+
+	pdata->xbar_chans = xbar_chans;
+
+	return 0;
+}
+
+static int edma_of_parse_dt(struct device *dev,
+			    struct device_node *node,
+			    struct edma_soc_info *pdata)
+{
+	int ret = 0;
+	u32 value;
+	struct property *prop;
+	size_t sz;
+	struct edma_rsv_info *rsv_info;
+	const s16 (*rsv_chans)[2], (*rsv_slots)[2];
+	const s8 (*queue_tc_map)[2], (*queue_priority_map)[2];
+
+	memset(pdata, 0, sizeof(struct edma_soc_info));
+
+	ret = of_property_read_u32(node, "dma-channels", &value);
+	if (ret < 0)
+		return ret;
+	pdata->n_channel = value;
+
+	ret = of_property_read_u32(node, "ti,edma-regions", &value);
+	if (ret < 0)
+		return ret;
+	pdata->n_region = value;
+
+	ret = of_property_read_u32(node, "ti,edma-slots", &value);
+	if (ret < 0)
+		return ret;
+	pdata->n_slot = value;
+
+	pdata->n_cc = 1;
+	pdata->n_tc = 3;
+
+	rsv_info =
+		devm_kzalloc(dev, sizeof(struct edma_rsv_info), GFP_KERNEL);
+	if (!rsv_info)
+		return -ENOMEM;
+	pdata->rsv = rsv_info;
+
+	/* Build the reserved channel/slots arrays */
+	prop = of_find_property(node, "ti,edma-reserved-channels", &sz);
+	if (prop) {
+		rsv_chans = devm_kzalloc(dev,
+					 sz/sizeof(s16) + 2*sizeof(s16),
+					 GFP_KERNEL);
+		if (!rsv_chans)
+			return -ENOMEM;
+		pdata->rsv->rsv_chans = rsv_chans;
+
+		ret = edma_of_read_u32_to_s16_array(node,
+						    "ti,edma-reserved-channels",
+						    (s16 *)rsv_chans,
+						    sz/sizeof(u32));
+		if (ret < 0)
+			return ret;
+	}
+
+	prop = of_find_property(node, "ti,edma-reserved-slots", &sz);
+	if (prop) {
+		rsv_slots = devm_kzalloc(dev,
+					 sz/sizeof(s16) + 2*sizeof(s16),
+					 GFP_KERNEL);
+		if (!rsv_slots)
+			return -ENOMEM;
+		pdata->rsv->rsv_slots = rsv_slots;
+
+		ret = edma_of_read_u32_to_s16_array(node,
+						    "ti,edma-reserved-slots",
+						    (s16 *)rsv_slots,
+						    sz/sizeof(u32));
+		if (ret < 0)
+			return ret;
+	}
+
+	prop = of_find_property(node, "ti,edma-queue-tc-map", &sz);
+	if (!prop)
+		return -EINVAL;
+
+	queue_tc_map = devm_kzalloc(dev,
+				    sz/sizeof(s8) + 2*sizeof(s8),
+				    GFP_KERNEL);
+	if (!queue_tc_map)
+		return -ENOMEM;
+	pdata->queue_tc_mapping = queue_tc_map;
+
+	ret = edma_of_read_u32_to_s8_array(node,
+					   "ti,edma-queue-tc-map",
+					   (s8 *)queue_tc_map,
+					   sz/sizeof(u32));
+	if (ret < 0)
+		return ret;
+
+	prop = of_find_property(node, "ti,edma-queue-priority-map", &sz);
+	if (!prop)
+		return -EINVAL;
+
+	queue_priority_map = devm_kzalloc(dev,
+					  sz/sizeof(s8) + 2*sizeof(s8),
+					  GFP_KERNEL);
+	if (!queue_priority_map)
+		return -ENOMEM;
+	pdata->queue_priority_mapping = queue_priority_map;
+
+	ret = edma_of_read_u32_to_s8_array(node,
+					   "ti,edma-queue-tc-map",
+					   (s8 *)queue_priority_map,
+					   sz/sizeof(u32));
+	if (ret < 0)
+		return ret;
+
+	ret = of_property_read_u32(node, "ti,edma-default-queue", &value);
+	if (ret < 0)
+		return ret;
+	pdata->default_queue = value;
+
+	prop = of_find_property(node, "ti,edma-xbar-event-map", &sz);
+	if (prop)
+		ret = edma_xbar_event_map(dev, node, pdata, sz);
+
+	return ret;
+}
+
+static struct of_dma_filter_info edma_filter_info = {
+	.filter_fn = edma_filter_fn,
+};
+
+static int edma_probe(struct platform_device *pdev)
 {
 	struct edma_soc_info	**info = pdev->dev.platform_data;
 	const s8		(*queue_priority_mapping)[2];
