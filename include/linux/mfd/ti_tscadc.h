@@ -40,6 +40,9 @@
 #define REG_FIFO1		0x200
 
 /*	Register Bitfields	*/
+/* IRQ wakeup enable */
+#define IRQWKUP_ENB		BIT(0)
+
 /* Step Enable */
 #define STEPENB_MASK		(0x1FFFF << 0)
 #define STEPENB(val)		((val) << 0)
