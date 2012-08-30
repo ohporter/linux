@@ -94,6 +94,15 @@ config MFD_TI_SSP
 	  To compile this driver as a module, choose M here: the
 	  module will be called ti-ssp.
 
+config MFD_TI_TSCADC
+	tristate "TI ADC / Touch Screen chip support"
+	depends on ARCH_OMAP2PLUS
+	help
+	  If you say yes here you get support for Texas Instruments series
+	  of Touch Screen /ADC chips.
+	  To compile this driver as a module, choose M here: the
+	  module will be called ti_tscadc.
+
 config HTC_EGPIO
 	bool "HTC EGPIO support"
 	depends on GENERIC_HARDIRQS && GPIOLIB && ARM
