@@ -23,6 +23,7 @@
 #include <linux/pm_runtime.h>
 #include <linux/mfd/ti_tscadc.h>
 #include <linux/input/ti_tsc.h>
+#include <linux/platform_data/ti_adc.h>
 
 static unsigned int tscadc_readl(struct ti_tscadc_dev *tsadc, unsigned int reg)
 {
@@ -55,14 +56,23 @@ static	int __devinit ti_tscadc_probe(struct platform_device *pdev)
 	int			irq;
 	int			err, ctrl;
 	int			clk_value, clock_rate;
-	int			tsc_wires;
+	int			tsc_wires, adc_channels = 0, total_channels;
 
 	if (!pdata) {
 		dev_err(&pdev->dev, "Could not find platform data\n");
 		return -EINVAL;
 	}
 
+	if (pdata->adc_init)
+		adc_channels = pdata->adc_init->adc_channels;
+
 	tsc_wires = pdata->tsc_init->wires;
+	total_channels = tsc_wires + adc_channels;
+
+	if (total_channels > 8) {
+		dev_err(&pdev->dev, "Number of i/p channels more than 8\n");
+		return -EINVAL;
+	}
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!res) {
@@ -146,6 +156,12 @@ static	int __devinit ti_tscadc_probe(struct platform_device *pdev)
 	/* TSC Cell */
 	cell = &tscadc->cells[TSC_CELL];
 	cell->name = "tsc";
+	cell->platform_data = tscadc;
+	cell->pdata_size = sizeof(*tscadc);
+
+	/* ADC Cell */
+	cell = &tscadc->cells[ADC_CELL];
+	cell->name = "tiadc";
 	cell->platform_data = tscadc;
 	cell->pdata_size = sizeof(*tscadc);
 

@@ -22,4 +22,11 @@ config AT91_ADC
 	help
 	  Say yes here to build support for Atmel AT91 ADC.
 
+config TI_ADC
+	tristate "TI's ADC driver"
+	depends on ARCH_OMAP2PLUS
+	help
+	  Say yes here to build support for Texas Instruments ADC
+	  driver which is also a MFD client.
+
 endmenu
