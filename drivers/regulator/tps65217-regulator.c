@@ -292,7 +292,7 @@ static int __devinit tps65217_regulator_probe(struct platform_device *pdev)
 	tps = dev_to_tps65217(pdev->dev.parent);
 	tps->info[pdev->id] = info;
 
-	config.dev = &pdev->dev;
+	config.dev = pdev->dev.parent;
 	config.of_node = pdev->dev.of_node;
 	config.init_data = pdev->dev.platform_data;
 	config.driver_data = tps;
