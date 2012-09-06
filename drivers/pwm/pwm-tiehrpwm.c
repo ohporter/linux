@@ -111,7 +111,7 @@ struct ehrpwm_pwm_chip {
 	struct pwm_chip	chip;
 	unsigned int	clk_rate;
 	void __iomem	*mmio_base;
-	unsigned long duty_cycles;
+	unsigned long period_cycles[NUM_PWM_CHANNEL];
 	enum pwm_polarity polarity;
 };
 
@@ -241,6 +241,7 @@ static int ehrpwm_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	unsigned long long c;
 	unsigned long period_cycles, duty_cycles;
 	unsigned short ps_divval, tb_divval;
+	int i;
 
 	if (period_ns < 0 || duty_ns < 0 || period_ns > NSEC_PER_SEC)
 		return -ERANGE;
@@ -259,6 +260,28 @@ static int ehrpwm_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 		do_div(c, NSEC_PER_SEC);
 		duty_cycles = (unsigned long)c;
 	}
+
+	/*
+	 * Period values should be same for multiple PWM channels as IP uses
+	 * same period register for multiple channels.
+	 */
+	for (i = 0; i < NUM_PWM_CHANNEL; i++) {
+		if (pc->period_cycles[i] &&
+				(pc->period_cycles[i] != period_cycles)) {
+			/*
+			 * Allow channel to reconfigure period if no other
+			 * channels being configured.
+			 */
+			if (i == pwm->hwpwm)
+				continue;
+
+			dev_err(chip->dev, "Period value conflicts with channel %d\n",
+					i);
+			return -EINVAL;
+		}
+	}
+
+	pc->period_cycles[pwm->hwpwm] = period_cycles;
 
 	/* Configure clock prescaler to support Low frequency PWM wave */
 	if (set_prescale_div(period_cycles/PERIOD_MAX, &ps_divval,
@@ -368,10 +391,15 @@ static void ehrpwm_pwm_disable(struct pwm_chip *chip, struct pwm_device *pwm)
 
 static void ehrpwm_pwm_free(struct pwm_chip *chip, struct pwm_device *pwm)
 {
+	struct ehrpwm_pwm_chip *pc = to_ehrpwm_pwm_chip(chip);
+
 	if (test_bit(PWMF_ENABLED, &pwm->flags)) {
 		dev_warn(chip->dev, "Removing PWM device without disabling\n");
 		pm_runtime_put_sync(chip->dev);
 	}
+
+	/* set period value to zero on free */
+	pc->period_cycles[pwm->hwpwm] = 0;
 }
 
 static const struct pwm_ops ehrpwm_pwm_ops = {
