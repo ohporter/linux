@@ -30,6 +30,7 @@
 #include <linux/of.h>
 #include <linux/of_gpio.h>
 #include <linux/of_device.h>
+#include <linux/edma.h>
 #include <linux/omap-dma.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/core.h>
@@ -1303,6 +1304,8 @@ static int omap_hsmmc_start_dma_transfer(struct omap_hsmmc_host *host,
 
 	chan = omap_hsmmc_get_dma_chan(host, data);
 
+	cfg.direction =
+		data->flags & MMC_DATA_WRITE ? DMA_MEM_TO_DEV : DMA_DEV_TO_MEM;
 	cfg.src_addr = host->mapbase + OMAP_HSMMC_DATA;
 	cfg.dst_addr = host->mapbase + OMAP_HSMMC_DATA;
 	cfg.src_addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
@@ -1883,7 +1886,8 @@ static int __devinit omap_hsmmc_probe(struct platform_device *pdev)
 
 	/* Since we do only SG emulation, we can have as many segs
 	 * as we want. */
-	mmc->max_segs = 1024;
+	/* We are stuck with 16 segs on EDMA dmaengine */
+	mmc->max_segs = 16;
 
 	mmc->max_blk_size = 512;       /* Block Length at max can be 1024 */
 	mmc->max_blk_count = 0xFFFF;    /* No. of Blocks is 16 bits */
@@ -1923,14 +1927,14 @@ static int __devinit omap_hsmmc_probe(struct platform_device *pdev)
 	dma_cap_zero(mask);
 	dma_cap_set(DMA_SLAVE, mask);
 
-	host->rx_chan = dma_request_channel(mask, omap_dma_filter_fn, &rx_req);
+	host->rx_chan = dma_request_channel(mask, edma_filter_fn, &rx_req);
 	if (!host->rx_chan) {
 		dev_err(mmc_dev(host->mmc), "unable to obtain RX DMA engine channel %u\n", rx_req);
 		ret = -ENXIO;
 		goto err_irq;
 	}
 
-	host->tx_chan = dma_request_channel(mask, omap_dma_filter_fn, &tx_req);
+	host->tx_chan = dma_request_channel(mask, edma_filter_fn, &tx_req);
 	if (!host->tx_chan) {
 		dev_err(mmc_dev(host->mmc), "unable to obtain TX DMA engine channel %u\n", tx_req);
 		ret = -ENXIO;
