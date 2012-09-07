@@ -372,6 +372,7 @@ omap2_mcspi_txrx_dma(struct spi_device *spi, struct spi_transfer *xfer)
 		struct dma_async_tx_descriptor *tx;
 		struct scatterlist sg;
 
+		cfg.direction = DMA_MEM_TO_DEV;
 		dmaengine_slave_config(mcspi_dma->dma_tx, &cfg);
 
 		sg_init_table(&sg, 1);
@@ -394,6 +395,7 @@ omap2_mcspi_txrx_dma(struct spi_device *spi, struct spi_transfer *xfer)
 		struct scatterlist sg;
 		size_t len = xfer->len - es;
 
+		cfg.direction = DMA_DEV_TO_MEM;
 		dmaengine_slave_config(mcspi_dma->dma_rx, &cfg);
 
 		if (l & OMAP2_MCSPI_CHCONF_TURBO)
