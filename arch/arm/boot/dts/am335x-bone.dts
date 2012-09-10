@@ -41,27 +41,27 @@
 
 			led0 {
 				label = "beaglebone:green:usr0";
-				gpios = <&gpio2 21 0>;
+				gpios = <&gpio1 21 0>;
 				linux,default-trigger = "heartbeat";
 				default-state = "off";
 			};
 
 			led1 {
 				label = "beaglebone:green:usr1";
-				gpios = <&gpio2 22 0>;
+				gpios = <&gpio1 22 0>;
 				linux,default-trigger = "mmc0";
 				default-state = "off";
 			};
 
 			led2 {
 				label = "beaglebone:green:usr2";
-				gpios = <&gpio2 23 0>;
+				gpios = <&gpio1 23 0>;
 				default-state = "off";
 			};
 
 			led3 {
 				label = "beaglebone:green:usr3";
-				gpios = <&gpio2 24 0>;
+				gpios = <&gpio1 24 0>;
 				default-state = "off";
 			};
 		};
