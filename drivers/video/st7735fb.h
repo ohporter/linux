@@ -35,6 +35,7 @@ enum st7735_cmd {
 struct st7735fb_par {
 	struct spi_device *spi;
 	struct fb_info *info;
+	struct mutex io_lock;
 	int xoff;
 	int yoff;
 	int rst;
