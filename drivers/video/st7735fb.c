@@ -450,11 +450,7 @@ static int __devinit st7735fb_probe (struct spi_device *spi)
 	info->var.blue.length = 5;
 	info->var.transp.offset = 0;
 	info->var.transp.length = 0;
-	info->flags = FBINFO_FLAG_DEFAULT |
-#ifdef __LITTLE_ENDIAN
-			FBINFO_FOREIGN_ENDIAN |
-#endif
-			FBINFO_VIRTFB;
+	info->flags = FBINFO_FLAG_DEFAULT | FBINFO_VIRTFB;
 
 	info->fbdefio = &st7735fb_defio;
 	fb_deferred_io_init(info);
