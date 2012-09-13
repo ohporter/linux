@@ -12,6 +12,7 @@
 #define WIDTH		128
 #define HEIGHT		160
 #define BPP		16
+#define MAX_PALETTE	16
 
 /* Supported display modules */
 #define ST7735_AF_TFT18_GREEN		0	/* Adafruit SPI TFT 1.8" - green tab */
