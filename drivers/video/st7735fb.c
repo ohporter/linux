@@ -21,10 +21,12 @@
 #include <linux/gpio.h>
 #include <linux/spi/spi.h>
 #include <linux/delay.h>
+#include <linux/err.h>
 #include <linux/uaccess.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
+#include <linux/pinctrl/consumer.h>
 
 #include "st7735fb.h"
 
@@ -434,12 +436,18 @@ static int __devinit st7735fb_probe (struct spi_device *spi)
 	struct device_node *np = spi->dev.of_node, *child;
 	enum of_gpio_flags flags;
 	const struct spi_device_id *spi_id = spi_get_device_id(spi);
+	struct pinctrl *pinctrl;
 
 	if (!spi_id) {
 		dev_err(&spi->dev,
 			"device id not supported!\n");
 		return -EINVAL;
 	}
+
+	pinctrl = devm_pinctrl_get_select_default(&spi->dev);
+	if (IS_ERR(pinctrl))
+		dev_warn(&spi->dev,
+			"pins are not configured from the driver\n");
 
 #ifdef __LITTLE_ENDIAN
 	vmem = (u8 *)vmalloc(vmem_size);
