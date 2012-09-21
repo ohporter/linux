@@ -1918,7 +1918,18 @@ static int _enable(struct omap_hwmod *oh)
 	 * can do.
 	 */
 	if (_are_any_hardreset_lines_asserted(oh))
+#if 0
 		return 0;
+#else
+	{
+	/* FIXME: Horrible hack */
+	/* We are supposed to control the rst_lines at the driver level */
+		int i;
+		for (i = 0; i < oh->rst_lines_cnt; i++)
+			_deassert_hardreset(oh, oh->rst_lines[i].name);
+	}
+#endif
+
 
 	/* Mux pins for device runtime if populated */
 	if (oh->mux && (!oh->mux->enabled ||
