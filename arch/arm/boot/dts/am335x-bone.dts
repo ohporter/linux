@@ -78,3 +78,7 @@
 		};
 	};
 };
+
+&pruss {
+	status = "okay";
+};
