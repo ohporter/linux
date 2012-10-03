@@ -29,6 +29,7 @@
 #include <linux/regulator/machine.h>
 #include <linux/regulator/tps6507x.h>
 #include <linux/input/tps6507x-ts.h>
+#include <linux/platform_data/uio_pruss.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
 #include <linux/delay.h>
@@ -42,6 +43,7 @@
 #include <mach/da8xx.h>
 #include <linux/platform_data/mtd-davinci.h>
 #include <mach/mux.h>
+#include <mach/sram.h>
 #include <linux/platform_data/mtd-davinci-aemif.h>
 #include <linux/platform_data/spi-davinci.h>
 
@@ -1253,6 +1255,10 @@ static __init int da850_wl12xx_init(void)
 
 #endif /* CONFIG_DA850_WL12XX */
 
+struct uio_pruss_pdata da8xx_pruss_uio_pdata = {
+	.pintc_base	= 0x4000,
+};
+
 #define DA850EVM_SATA_REFCLKPN_RATE	(100 * 1000 * 1000)
 
 static __init void da850_evm_init(void)
@@ -1337,6 +1343,12 @@ static __init void da850_evm_init(void)
 	ret = davinci_cfg_reg_list(da850_lcdcntl_pins);
 	if (ret)
 		pr_warning("da850_evm_init: lcdcntl mux setup failed: %d\n",
+				ret);
+
+	da8xx_pruss_uio_pdata.l3ram_pool = sram_get_gen_pool();
+	ret = da8xx_register_pruss_uio(&da8xx_pruss_uio_pdata);
+	if (ret)
+		pr_warning("pruss_uio initialization failed: %d\n",
 				ret);
 
 	/* Handle board specific muxing for LCD here */
