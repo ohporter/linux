@@ -16,6 +16,7 @@
 #include <linux/slab.h>
 #include <linux/dma-mapping.h>
 #include <linux/kernel.h>
+#include <linux/genalloc.h>
 #include <linux/platform_data/edma.h>
 
 #include <sound/core.h>
@@ -24,7 +25,6 @@
 #include <sound/soc.h>
 
 #include <asm/dma.h>
-#include <mach/sram.h>
 
 #include "davinci-pcm.h"
 
@@ -260,7 +260,8 @@ static void davinci_pcm_dma_irq(unsigned link, u16 ch_status, void *data)
 	}
 }
 
-static int allocate_sram(struct snd_pcm_substream *substream, unsigned size,
+static int allocate_sram(struct snd_pcm_substream *substream,
+		struct gen_pool *sram_pool, unsigned size,
 		struct snd_pcm_hardware *ppcm)
 {
 	struct snd_dma_buffer *buf = &substream->dma_buffer;
@@ -272,9 +273,10 @@ static int allocate_sram(struct snd_pcm_substream *substream, unsigned size,
 		return 0;
 
 	ppcm->period_bytes_max = size;
-	iram_virt = sram_alloc(size, &iram_phys);
+	iram_virt = (void *)gen_pool_alloc(sram_pool, size);
 	if (!iram_virt)
 		goto exit1;
+	iram_phys = gen_pool_virt_to_phys(sram_pool, (unsigned)iram_virt);
 	iram_dma = kzalloc(sizeof(*iram_dma), GFP_KERNEL);
 	if (!iram_dma)
 		goto exit2;
@@ -286,7 +288,7 @@ static int allocate_sram(struct snd_pcm_substream *substream, unsigned size,
 	return 0;
 exit2:
 	if (iram_virt)
-		sram_free(iram_virt, size);
+		gen_pool_free(sram_pool, (unsigned)iram_virt, size);
 exit1:
 	return -ENOMEM;
 }
@@ -677,7 +679,7 @@ static int davinci_pcm_open(struct snd_pcm_substream *substream)
 
 	ppcm = (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ?
 			&pcm_hardware_playback : &pcm_hardware_capture;
-	allocate_sram(substream, params->sram_size, ppcm);
+	allocate_sram(substream, params->sram_pool, params->sram_size, ppcm);
 	snd_soc_set_runtime_hwparams(substream, ppcm);
 	/* ensure that buffer size is a multiple of period size */
 	ret = snd_pcm_hw_constraint_integer(runtime,
@@ -820,7 +822,11 @@ static void davinci_pcm_free(struct snd_pcm *pcm)
 		buf->area = NULL;
 		iram_dma = buf->private_data;
 		if (iram_dma) {
-			sram_free(iram_dma->area, iram_dma->bytes);
+			struct davinci_runtime_data *prtd =
+				substream->runtime->private_data;
+			struct gen_pool *sram_pool = prtd->params->sram_pool;
+			gen_pool_free(sram_pool, (unsigned)iram_dma->area,
+				      iram_dma->bytes);
 			kfree(iram_dma);
 		}
 	}
