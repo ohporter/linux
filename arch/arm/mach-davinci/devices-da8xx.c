@@ -32,6 +32,7 @@
 #define DA8XX_WDOG_BASE			0x01c21000 /* DA8XX_TIMER64P1_BASE */
 #define DA8XX_I2C0_BASE			0x01c22000
 #define DA8XX_RTC_BASE			0x01c23000
+#define DA8XX_PRUSS_MEM_BASE		0x01c30000
 #define DA8XX_MMCSD0_BASE		0x01c40000
 #define DA8XX_SPI0_BASE			0x01c41000
 #define DA830_SPI1_BASE			0x01e12000
@@ -516,6 +517,70 @@ void __init da8xx_register_mcasp(int id, struct snd_platform_data *pdata)
 		da850_mcasp_device.dev.platform_data = pdata;
 		platform_device_register(&da850_mcasp_device);
 	}
+}
+
+static struct resource da8xx_pruss_resources[] = {
+	{
+		.start	= DA8XX_PRUSS_MEM_BASE,
+		.end	= DA8XX_PRUSS_MEM_BASE + 0xFFFF,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.start	= IRQ_DA8XX_EVTOUT0,
+		.end	= IRQ_DA8XX_EVTOUT0,
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		.start	= IRQ_DA8XX_EVTOUT1,
+		.end	= IRQ_DA8XX_EVTOUT1,
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		.start	= IRQ_DA8XX_EVTOUT2,
+		.end	= IRQ_DA8XX_EVTOUT2,
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		.start	= IRQ_DA8XX_EVTOUT3,
+		.end	= IRQ_DA8XX_EVTOUT3,
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		.start	= IRQ_DA8XX_EVTOUT4,
+		.end	= IRQ_DA8XX_EVTOUT4,
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		.start	= IRQ_DA8XX_EVTOUT5,
+		.end	= IRQ_DA8XX_EVTOUT5,
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		.start	= IRQ_DA8XX_EVTOUT6,
+		.end	= IRQ_DA8XX_EVTOUT6,
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		.start	= IRQ_DA8XX_EVTOUT7,
+		.end	= IRQ_DA8XX_EVTOUT7,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device da8xx_pruss_uio_dev = {
+	.name		= "pruss_uio",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(da8xx_pruss_resources),
+	.resource	= da8xx_pruss_resources,
+	.dev	 =	{
+		.coherent_dma_mask = DMA_BIT_MASK(32),
+	}
+};
+
+int __init da8xx_register_pruss_uio(struct uio_pruss_pdata *config)
+{
+	da8xx_pruss_uio_dev.dev.platform_data = config;
+	return platform_device_register(&da8xx_pruss_uio_dev);
 }
 
 static const struct display_panel disp_panel = {
