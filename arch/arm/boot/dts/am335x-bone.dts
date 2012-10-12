@@ -49,6 +49,16 @@
 			};
 
 		};
+
+		i2c2: i2c@4802a000 {
+			status = "okay";
+			clock-frequency = <400000>;
+
+			tlv320aic3x: tlv320aic3x@1b {
+				compatible = "ti,tlv320aic3x";
+				reg = <0x1b>;
+			};
+		};
 	};
 };
 
@@ -96,6 +106,20 @@
 			regulator-always-on;
 		};
 	};
+};
+
+&mcasp0 {
+	status = "okay";
+	op-mode = <0>;		/* MCASP_IIS_MODE */
+	tdm-slots = <2>;
+	num-serializer = <16>;
+	serial-dir = <
+			0 0 2 1	/* 0: INACTIVE, 1: TX, 2: RX */
+			0 0 0 0
+			0 0 0 0
+			0 0 0 0 >;
+	tx-num-evt = <1>;
+	rx-num-evt = <1>;
 };
 
 &mmc1 {

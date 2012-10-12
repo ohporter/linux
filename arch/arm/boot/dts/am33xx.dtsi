@@ -242,6 +242,16 @@
 			status = "disabled";
 		};
 
+		mcasp0: mcasp@48038000 {
+			compatible = "ti,omap2-mcasp-audio";
+			ti,hwmods = "mcasp0";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x48038000 0x3000>;
+			interrupts = <80 81>;
+			status = "disabled";
+		};
+
 		mmc1: mmc@48060000 {
 			compatible = "ti,omap3-hsmmc";
 			ti,hwmods = "mmc1";
