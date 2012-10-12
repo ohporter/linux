@@ -1022,6 +1022,11 @@ static struct snd_platform_data *davinci_mcasp_set_pdata_from_of(
 	if (ret >= 0)
 		pdata->sram_size_capture = val;
 
+	/* HACK ALERT */
+	pdata->tx_dma_offset = 0x46400000;
+	pdata->rx_dma_offset = 0x46400000;
+	pdata->asp_chan_q = 2;
+
 	return  pdata;
 
 nodata:
@@ -1104,6 +1109,7 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 							mem->start);
 
 	/* first TX, then RX */
+#if 0
 	res = platform_get_resource(pdev, IORESOURCE_DMA, 0);
 	if (!res) {
 		dev_err(&pdev->dev, "no DMA resource\n");
@@ -1112,6 +1118,9 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 	}
 
 	dma_data->channel = res->start;
+#else
+	dma_data->channel = 8;
+#endif
 
 	dma_data = &dev->dma_params[SNDRV_PCM_STREAM_CAPTURE];
 	dma_data->asp_chan_q = pdata->asp_chan_q;
@@ -1121,6 +1130,7 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 	dma_data->dma_addr = (dma_addr_t)(pdata->rx_dma_offset +
 							mem->start);
 
+#if 0
 	res = platform_get_resource(pdev, IORESOURCE_DMA, 1);
 	if (!res) {
 		dev_err(&pdev->dev, "no DMA resource\n");
@@ -1129,6 +1139,9 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 	}
 
 	dma_data->channel = res->start;
+#else
+	dma_data->channel = 9;
+#endif
 	dev_set_drvdata(&pdev->dev, dev);
 	ret = snd_soc_register_dai(&pdev->dev, &davinci_mcasp_dai[pdata->op_mode]);
 
@@ -1140,6 +1153,8 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "register PCM failed: %d\n", ret);
 		goto err_unregister_dai;
 	}
+
+	printk("*** Successfully probed mcasp ***\n");
 
 	return 0;
 

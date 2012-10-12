@@ -1,6 +1,7 @@
 config SND_DAVINCI_SOC
 	tristate "SoC Audio for the TI DAVINCI chip"
-	depends on ARCH_DAVINCI
+	depends on ARCH_DAVINCI || ARCH_OMAP
+	select GENERIC_ALLOCATOR
 	help
 	  Say Y or M if you want to add support for codecs attached to
 	  the DAVINCI AC97 or I2S interface. You will also need
@@ -14,6 +15,15 @@ config SND_DAVINCI_SOC_MCASP
 
 config SND_DAVINCI_SOC_VCIF
 	tristate
+
+config SND_DAVINCI_SOC_DT
+	tristate "SoC Audio support for DT platforms"
+	depends on SND_DAVINCI_SOC
+	depends on OF
+	select SND_DAVINCI_SOC_MCASP
+	help
+	  Say Y if you want to add support for SoC audio on TI
+	  platforms using Device Tree.
 
 config SND_DAVINCI_SOC_EVM
 	tristate "SoC Audio support for DaVinci DM6446, DM355 or DM365 EVM"
