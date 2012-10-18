@@ -28,6 +28,7 @@
 #include <linux/platform_device.h>
 #include <linux/spinlock.h>
 #include <linux/genalloc.h>
+#include <linux/platform_data/sram.h>
 
 struct sram_dev {
 	struct gen_pool *pool;
@@ -40,6 +41,7 @@ static int __devinit sram_probe(struct platform_device *pdev)
 	struct sram_dev *sram;
 	struct resource *res;
 	unsigned long size;
+	u32 alloc_order = PAGE_SHIFT;
 	int ret;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -60,7 +62,17 @@ static int __devinit sram_probe(struct platform_device *pdev)
 	if (!IS_ERR(sram->clk))
 		clk_prepare_enable(sram->clk);
 
-	sram->pool = gen_pool_create(PAGE_SHIFT, -1);
+	if (pdev->dev.of_node)
+		of_property_read_u32(pdev->dev.of_node,
+				     "alloc-order", &alloc_order);
+	else
+		if (pdev->dev.platform_data) {
+			struct sram_pdata *pdata = pdev->dev.platform_data;
+			if (pdata->alloc_order)
+				alloc_order = pdata->alloc_order;
+		}
+
+	sram->pool = gen_pool_create(alloc_order, -1);
 	if (!sram->pool)
 		return -ENOMEM;
 
