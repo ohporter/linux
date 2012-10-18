@@ -34,6 +34,11 @@
 #include <linux/rculist.h>
 #include <linux/interrupt.h>
 #include <linux/genalloc.h>
+#include <linux/of_address.h>
+#include <linux/of_device.h>
+
+static LIST_HEAD(pools);
+static DEFINE_SPINLOCK(list_lock);
 
 static int set_bits_ll(unsigned long *addr, unsigned long mask_to_set)
 {
@@ -154,6 +159,9 @@ struct gen_pool *gen_pool_create(int min_alloc_order, int nid)
 		pool->min_alloc_order = min_alloc_order;
 		pool->algo = gen_pool_first_fit;
 		pool->data = NULL;
+		spin_lock(&list_lock);
+		list_add_rcu(&pool->next_pool, &pools);
+		spin_unlock(&list_lock);
 	}
 	return pool;
 }
@@ -236,6 +244,9 @@ void gen_pool_destroy(struct gen_pool *pool)
 	int order = pool->min_alloc_order;
 	int bit, end_bit;
 
+	spin_lock(&list_lock);
+	list_del_rcu(&pool->next_pool);
+	spin_unlock(&list_lock);
 	list_for_each_safe(_chunk, _next_chunk, &pool->chunks) {
 		chunk = list_entry(_chunk, struct gen_pool_chunk, next_chunk);
 		list_del(&chunk->next_chunk);
@@ -480,3 +491,59 @@ unsigned long gen_pool_best_fit(unsigned long *map, unsigned long size,
 	return start_bit;
 }
 EXPORT_SYMBOL(gen_pool_best_fit);
+
+/*
+ * gen_pool_find_by_phys - find a pool by physical start address
+ * @phys: physical address as added with gen_pool_add_virt
+ *
+ * Returns the pool that contains the chunk starting at phys,
+ * or NULL if not found.
+ */
+struct gen_pool *gen_pool_find_by_phys(phys_addr_t phys)
+{
+	struct gen_pool *pool, *found = NULL;
+	struct gen_pool_chunk *chunk;
+
+	rcu_read_lock();
+	list_for_each_entry_rcu(pool, &pools, next_pool) {
+		list_for_each_entry_rcu(chunk, &pool->chunks, next_chunk) {
+			if (phys == chunk->phys_addr) {
+				found = pool;
+				break;
+			}
+		}
+	}
+	rcu_read_unlock();
+
+	return found;
+}
+EXPORT_SYMBOL_GPL(gen_pool_find_by_phys);
+
+#ifdef CONFIG_OF
+/**
+ * of_get_named_gen_pool - find a pool by phandle property
+ * @np: device node
+ * @propname: property name containing phandle(s)
+ * @index: index into the phandle array
+ *
+ * Returns the pool that contains the chunk starting at the physical
+ * address of the device tree node pointed at by the phandle property,
+ * or NULL if not found.
+ */
+struct gen_pool *of_get_named_gen_pool(struct device_node *np,
+	const char *propname, int index)
+{
+	struct device_node *np_pool;
+	struct resource res;
+	int ret;
+
+	np_pool = of_parse_phandle(np, propname, index);
+	if (!np_pool)
+		return NULL;
+	ret = of_address_to_resource(np_pool, 0, &res);
+	if (ret < 0)
+		return NULL;
+	return gen_pool_find_by_phys((phys_addr_t) res.start);
+}
+EXPORT_SYMBOL_GPL(of_get_named_gen_pool);
+#endif /* CONFIG_OF */
