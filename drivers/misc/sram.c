@@ -21,6 +21,8 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/init.h>
+#include <linux/clk.h>
+#include <linux/err.h>
 #include <linux/io.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
@@ -29,6 +31,7 @@
 
 struct sram_dev {
 	struct gen_pool *pool;
+	struct clk *clk;
 };
 
 static int __devinit sram_probe(struct platform_device *pdev)
@@ -52,6 +55,10 @@ static int __devinit sram_probe(struct platform_device *pdev)
 	sram = devm_kzalloc(&pdev->dev, sizeof(*sram), GFP_KERNEL);
 	if (!sram)
 		return -ENOMEM;
+
+	sram->clk = devm_clk_get(&pdev->dev, NULL);
+	if (!IS_ERR(sram->clk))
+		clk_prepare_enable(sram->clk);
 
 	sram->pool = gen_pool_create(PAGE_SHIFT, -1);
 	if (!sram->pool)
@@ -79,6 +86,9 @@ static int __devexit sram_remove(struct platform_device *pdev)
 		dev_dbg(&pdev->dev, "removed while SRAM allocated\n");
 
 	gen_pool_destroy(sram->pool);
+
+	if (!IS_ERR(sram->clk))
+		clk_disable_unprepare(sram->clk);
 
 	return 0;
 }
