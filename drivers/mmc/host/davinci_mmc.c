@@ -145,18 +145,6 @@
 /* MMCSD Init clock in Hz in opendrain mode */
 #define MMCSD_INIT_CLOCK		200000
 
-/*
- * One scatterlist dma "segment" is at most MAX_CCNT rw_threshold units,
- * and we handle up to MAX_NR_SG segments.  MMC_BLOCK_BOUNCE kicks in only
- * for drivers with max_segs == 1, making the segments bigger (64KB)
- * than the page or two that's otherwise typical. nr_sg (passed from
- * platform data) == 16 gives at least the same throughput boost, using
- * EDMA transfer linkage instead of spending CPU time copying pages.
- */
-#define MAX_CCNT	((1 << 16) - 1)
-
-#define MAX_NR_SG	16
-
 static unsigned rw_threshold = 32;
 module_param(rw_threshold, uint, S_IRUGO);
 MODULE_PARM_DESC(rw_threshold,
@@ -217,8 +205,6 @@ struct mmc_davinci_host {
 	u8 version;
 	/* for ns in one cycle calculation */
 	unsigned ns_in_one_cycle;
-	/* Number of sg segments */
-	u8 nr_sg;
 #ifdef CONFIG_CPU_FREQ
 	struct notifier_block	freq_transition;
 #endif
@@ -1166,6 +1152,7 @@ static int __init davinci_mmcsd_probe(struct platform_device *pdev)
 	struct resource *r, *mem = NULL;
 	int ret = 0, irq = 0;
 	size_t mem_size;
+	struct dma_slave_sg_limits *dma_sg_limits;
 
 	/* REVISIT:  when we're fully converted, fail if pdata is NULL */
 
@@ -1215,12 +1202,6 @@ static int __init davinci_mmcsd_probe(struct platform_device *pdev)
 
 	init_mmcsd_host(host);
 
-	if (pdata->nr_sg)
-		host->nr_sg = pdata->nr_sg - 1;
-
-	if (host->nr_sg > MAX_NR_SG || !host->nr_sg)
-		host->nr_sg = MAX_NR_SG;
-
 	host->use_dma = use_dma;
 	host->mmc_irq = irq;
 	host->sdio_irq = platform_get_irq(pdev, 1);
@@ -1249,14 +1230,16 @@ static int __init davinci_mmcsd_probe(struct platform_device *pdev)
 		mmc->caps |= pdata->caps;
 	mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
 
-	/* With no iommu coalescing pages, each phys_seg is a hw_seg.
-	 * Each hw_seg uses one EDMA parameter RAM slot, always one
-	 * channel and then usually some linked slots.
-	 */
-	mmc->max_segs		= MAX_NR_SG;
+	/* Just check one channel for the DMA SG limits */
+	dma_sg_limits = dma_get_slave_sg_limits(
+				host->dma_tx,
+				DMA_SLAVE_BUSWIDTH_4_BYTES,
+				rw_threshold / DMA_SLAVE_BUSWIDTH_4_BYTES);
 
-	/* EDMA limit per hw segment (one or two MBytes) */
-	mmc->max_seg_size	= MAX_CCNT * rw_threshold;
+	if (dma_sg_limits) {
+		mmc->max_segs = dma_sg_limits->max_seg_nr;
+		mmc->max_seg_size = dma_sg_limits->max_seg_len;
+	}
 
 	/* MMC/SD controller limits for multiblock requests */
 	mmc->max_blk_size	= 4095;  /* BLEN is 12 bits */
