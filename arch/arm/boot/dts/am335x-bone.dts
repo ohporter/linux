@@ -61,6 +61,10 @@
 			status = "okay";
 		};
 
+		uart3: serial@48024000 {
+			status = "okay";
+		};
+
 		gpio-leds {
 			compatible = "gpio-leds";
 			pinctrl-names = "default";
