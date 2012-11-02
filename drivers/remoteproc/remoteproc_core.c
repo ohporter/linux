@@ -1028,6 +1028,13 @@ int rproc_add(struct rproc *rproc)
 	struct device *dev = &rproc->dev;
 	int ret = 0;
 
+	dev->class = class_create(THIS_MODULE, "rproc");
+	if (IS_ERR(dev->class)) {
+		printk(KERN_ERR "%s: couldn't create class\n", __FILE__);
+		return PTR_ERR(dev->class);
+	}
+	rproc_init_sysfs(rproc);
+
 	ret = device_add(dev);
 	if (ret < 0)
 		return ret;

@@ -6,6 +6,13 @@ config REMOTEPROC
 	depends on EXPERIMENTAL
 	select FW_CONFIG
 	select VIRTIO
+	select VIRTIO_RING
+
+config REMOTEPROC_SYSFS
+	tristate "Remoteproc sysfs support"
+	select REMOTEPROC
+	help
+	  Say y here to support sysfs control of remote processors
 
 config OMAP_REMOTEPROC
 	tristate "OMAP remoteproc support"
