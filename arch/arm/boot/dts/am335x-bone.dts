@@ -35,10 +35,10 @@
 		};
 		spi1_pins: pinmux_spi1_pins {
 			pinctrl-single,pins = <
-				0x190 0x13	/* mcasp0_aclkx.spi1_sclk, OUTPUT_PULLUP | MODE3 */
-				0x194 0x33	/* mcasp0_fsx.spi1_d0, INPUT_PULLUP | MODE3 */
-				0x198 0x13	/* mcasp0_axr0.spi1_d1, OUTPUT_PULLUP | MODE3 */
-				0x19c 0x13	/* mcasp0_ahclkr.spi1_cs0, OUTPUT_PULLUP | MODE3 */
+				/* 0x190 0x13 */	/* mcasp0_aclkx.spi1_sclk, OUTPUT_PULLUP | MODE3 */
+				/* 0x194 0x33 */	/* mcasp0_fsx.spi1_d0, INPUT_PULLUP | MODE3 */
+				/* 0x198 0x13*/	/* mcasp0_axr0.spi1_d1, OUTPUT_PULLUP | MODE3 */
+				/*0x19c 0x13 */	/* mcasp0_ahclkr.spi1_cs0, OUTPUT_PULLUP | MODE3 */
 				0x48 0x6        /* gpmc_a2.ehrpwm1A, MODE6 */
 			>;
 		};
@@ -52,6 +52,45 @@
 			pinctrl-single,pins = <
 				0x178 0x73 	/* uart1_ctsn.i2c2_sda, SLEWCTRL_SLOW | INPUT_PULLUP | MODE3 */
 				0x17c 0x73	/* uart1_rtsn.i2c2_scl, SLEWCTRL_SLOW | INPUT_PULLUP | MODE3 */
+			>;
+		};
+		b6502_pins: pinmux_b6502_pins {
+			pinctrl-single,pins = <
+				/* clock and reset */
+				0x20 0x04	/* gpmc_ad8.ehrpwm2a, MODE4 */
+				0x2c 0x17	/* gpmc_ad11.gpio0_27, OUTPUT_PULLUP | MODE7 */
+
+				/* data out 0..7 */
+				0xe0 0x15	/* lcd_vsync.pr1_pru1_pru_r30_8, OUTPUT_PULLUP | MODE5 */
+				0xe4 0x15	/* lcd_hsync.pr1_pru1_pru_r30_9, OUTPUT_PULLUP | MODE5 */
+				0xe8 0x15	/* lcd_pclk.pr1_pru1_pru_r30_10, OUTPUT_PULLUP | MODE5 */
+				0xec 0x15	/* lcd_ac_bias_en.pr1_pru1_pru_r30_11, OUTPUT_PULLUP | MODE5 */
+				0x80 0x15	/* gpmc_csn1.pr1_pru1_pru_r30_12, OUTPUT_PULLUP | MODE5 */
+				0x84 0x15	/* gpmc_csn2.pr1_pru1_pru_r30_13, OUTPUT_PULLUP | MODE5 */
+				0x30 0x16	/* gpmc_ad12.pr1_pru0_pru_r30_14, OUTPUT_PULLUP | MODE6 */
+				0x34 0x16	/* gpmc_ad13.pr1_pru0_pru_r30_15, OUTPUT_PULLUP | MODE6 */
+
+				/* data in 0..7 */
+				0xa0 0x36	/* lcd_data0.pr1_pru1_pru_r31_0, INPUT_PULLUP | MODE6 */
+				0xa4 0x36	/* lcd_data1.pr1_pru1_pru_r31_1, INPUT_PULLUP | MODE6 */
+				0xa8 0x36	/* lcd_data2.pr1_pru1_pru_r31_2, INPUT_PULLUP | MODE6 */
+				0xac 0x36	/* lcd_data3.pr1_pru1_pru_r31_3, INPUT_PULLUP | MODE6 */
+				0xb0 0x36	/* lcd_data4.pr1_pru1_pru_r31_4, INPUT_PULLUP | MODE6 */
+				0xb4 0x36	/* lcd_data5.pr1_pru1_pru_r31_5, INPUT_PULLUP | MODE6 */
+				0xb8 0x36	/* lcd_data6.pr1_pru1_pru_r31_6, INPUT_PULLUP | MODE6 */
+				0xbc 0x36	/* lcd_data7.pr1_pru1_pru_r31_7, INPUT_PULLUP | MODE6 */
+
+				/* rw and phi2 */
+				0x38 0x36	/* gpmc_ad14.pr1_pru0_pru_r31_14, INPUT_PULLUP | MODE6 */
+				0x3c 0x36	/* gpmc_ad15.pr1_pru0_pru_r31_15, INPUT_PULLUP | MODE6 */
+
+				/* alow and ahigh */
+				0x190 0x15	/* mcasp0_aclkx.pr1_pru0_pru_r30_0, OUTPUT_PULLUP | MODE5 */
+				0x194 0x15	/* mcasp0_fsx.pr1_pru0_pru_r30_1, OUTPUT_PULLUP | MODE5 */
+
+				/* dataout and datain */
+				0x198 0x15	/* mcasp0_axr0.pr1_pru0_pru_r30_2, OUTPUT_PULLUP | MODE5 */
+				0x19c 0x15	/* mcasp0_ahclkr.pr1_pru0_pru_r30_3, OUTPUT_PULLUP | MODE5 */
 			>;
 		};
 	};
@@ -95,6 +134,22 @@
 				gpios = <&gpio1 24 0>;
 				default-state = "off";
 			};
+		};
+
+		sram6502: sram@4a310000 {
+			compatible = "sram";
+			reg = <0x4a310000 0x2000>; /* 8 KiB PRUSS Shared SRAM at address 0x4a310000 */
+			alloc-order = <10>; /* Minimum 1KiB allocation */	
+		};
+
+		b6502rproc: rproc@0 {
+			compatible = "bone6502";
+			pinctrl-names = "default";
+			pinctrl-0 = <&b6502_pins>;
+			sram = <&sram6502>;
+			reset = <&gpio0 27 0>;
+			pwms = <&ehrpwm2 0 1000 0>;
+			pwm-names = "clock";
 		};
 	};
 
@@ -238,3 +293,5 @@
 &pruss {
 	status = "okay";
 };
+
+
