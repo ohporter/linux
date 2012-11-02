@@ -35,4 +35,13 @@ config OMAP_REMOTEPROC
 	  It's safe to say n here if you're not interested in multimedia
 	  offloading or just want a bare minimum kernel.
 
+config B6502_REMOTEPROC
+	tristate "Beaglebone-6502 RemoteProc support"
+	depends on EXPERIMENTAL
+	depends on SOC_AM33XX
+	select REMOTEPROC
+	help
+	  Say y here to support a 6502 processor connected to
+	  the BeagleBone via the PRU 65xx bus decoder.
+
 endmenu
