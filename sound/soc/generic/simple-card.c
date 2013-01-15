@@ -9,6 +9,7 @@
  * published by the Free Software Foundation.
  */
 
+#include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/module.h>
 #include <sound/simple_card.h>
@@ -52,10 +53,98 @@ static int asoc_simple_card_dai_init(struct snd_soc_pcm_runtime *rtd)
 	return 0;
 }
 
+static struct device_node*
+__asoc_simple_card_parse_of(struct device_node *np,
+			    const char *node_name1,
+			    const char *node_name2,
+			    const char **interface,
+			    struct asoc_simple_dai *dai)
+{
+	struct device_node *node;
+	char prop[128];
+
+	/* node or name is required */
+	snprintf(prop, sizeof(prop),
+		 "simple-audio,%s,controller", node_name1);
+	node = of_parse_phandle(np, prop, 0);
+	if (node)
+		of_node_put(node);
+
+	/* get "simple-audio,xxx,yyy,name = xxx" */
+	snprintf(prop, sizeof(prop),
+		 "simple-audio,%s%s,name", node_name1, node_name2);
+	of_property_read_string(np, prop, interface);
+
+	if (dai) {
+		/* get "simple-audio,xxx,yyy,formart = xxx" */
+		snprintf(prop, sizeof(prop),
+			 "simple-audio,%s%s,", node_name1, node_name2);
+		dai->fmt = snd_soc_of_parse_daifmt(np, prop);
+
+		/* get "simple-audio,xxx,yyy,system-clock-frequency = <xxx>" */
+		snprintf(prop, sizeof(prop),
+			 "simple-audio,%s%s,system-clock-frequency",
+			 node_name1, node_name2);
+		of_property_read_u32(np, prop, &dai->sysclk);
+	}
+
+	return node;
+}
+
+static void asoc_simple_card_parse_of(struct device_node *np,
+				      struct asoc_simple_card_info *info,
+				      struct device *dev,
+				      struct device_node **of_cpu,
+				      struct device_node **of_codec,
+				      struct device_node **of_platform)
+{
+	of_property_read_string(np, "simple-audio,card-name", &info->card);
+	info->name = info->card;
+
+	*of_cpu = __asoc_simple_card_parse_of(
+		np, "cpu", ",dai", &info->cpu_dai.name, &info->cpu_dai);
+	*of_codec = __asoc_simple_card_parse_of(
+		np, "codec", ",dai", &info->codec_dai.name, &info->codec_dai);
+	*of_platform = __asoc_simple_card_parse_of(
+		np, "platform", "", &info->platform, NULL);
+
+	dev_dbg(dev, "card-name  : %s\n", info->card);
+	dev_dbg(dev, "cpu info   : %s / %x / %d / %p\n",
+		info->cpu_dai.name,
+		info->cpu_dai.fmt,
+		info->cpu_dai.sysclk,
+		*of_cpu);
+	dev_dbg(dev, "codec_info : %s / %x / %d / %p\n",
+		info->codec_dai.name,
+		info->codec_dai.fmt,
+		info->codec_dai.sysclk,
+		*of_codec);
+	dev_dbg(dev, "platform_info : %s / %p\n",
+		info->platform,
+		*of_platform);
+}
+
 static int asoc_simple_card_probe(struct platform_device *pdev)
 {
-	struct asoc_simple_card_info *cinfo = pdev->dev.platform_data;
+	struct asoc_simple_card_info *cinfo;
+	struct device_node *np = pdev->dev.of_node;
+	struct device_node *of_cpu, *of_codec, *of_platform;
 	struct device *dev = &pdev->dev;
+
+	cinfo		= NULL;
+	of_cpu		= NULL;
+	of_codec	= NULL;
+	of_platform	= NULL;
+	if (np && of_device_is_available(np)) {
+		cinfo = devm_kzalloc(dev, sizeof(*cinfo), GFP_KERNEL);
+		if (cinfo)
+			asoc_simple_card_parse_of(np, cinfo, dev,
+						  &of_cpu,
+						  &of_codec,
+						  &of_platform);
+	} else {
+		cinfo = pdev->dev.platform_data;
+	}
 
 	if (!cinfo) {
 		dev_err(dev, "no info for asoc-simple-card\n");
@@ -64,10 +153,10 @@ static int asoc_simple_card_probe(struct platform_device *pdev)
 
 	if (!cinfo->name	||
 	    !cinfo->card	||
-	    !cinfo->codec	||
-	    !cinfo->platform	||
-	    !cinfo->cpu_dai.name ||
-	    !cinfo->codec_dai.name) {
+	    !cinfo->codec_dai.name	||
+	    !(cinfo->codec		|| of_codec)	||
+	    !(cinfo->platform		|| of_platform)	||
+	    !(cinfo->cpu_dai.name	|| of_cpu)) {
 		dev_err(dev, "insufficient asoc_simple_card_info settings\n");
 		return -EINVAL;
 	}
@@ -81,6 +170,9 @@ static int asoc_simple_card_probe(struct platform_device *pdev)
 	cinfo->snd_link.platform_name	= cinfo->platform;
 	cinfo->snd_link.codec_name	= cinfo->codec;
 	cinfo->snd_link.codec_dai_name	= cinfo->codec_dai.name;
+	cinfo->snd_link.cpu_of_node	= of_cpu;
+	cinfo->snd_link.codec_of_node	= of_codec;
+	cinfo->snd_link.platform_of_node = of_platform;
 	cinfo->snd_link.init		= asoc_simple_card_dai_init;
 
 	/*
@@ -102,9 +194,15 @@ static int asoc_simple_card_remove(struct platform_device *pdev)
 	return snd_soc_unregister_card(&cinfo->snd_card);
 }
 
+static const struct of_device_id asoc_simple_of_match[] = {
+	{ .compatible = "simple-audio", },
+	{},
+};
+
 static struct platform_driver asoc_simple_card = {
 	.driver = {
 		.name	= "asoc-simple-card",
+		.of_match_table = asoc_simple_of_match,
 	},
 	.probe		= asoc_simple_card_probe,
 	.remove		= asoc_simple_card_remove,

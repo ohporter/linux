@@ -1,0 +1,77 @@
+Simple-Card:
+
+Required properties:
+
+- compatible					: "simple-audio"
+- simple-audio,card-name			: simple-audio card name
+
+- simple-audio,platform,controller		: phandle for platform
+- simple-audio,platform,name			: simple-audio platform name
+
+- simple-audio,cpu,controller			: phandle for CPU DAI
+- simple-audio,cpu,dai,name			: simple-audio CPU DAI name
+- simple-audio,cpu,dai,format			: see below
+- simple-audio,cpu,dai,clock-gating		: if needed, see below
+- simple-audio,cpu,dai,bitclock-inversion	: if needed
+- simple-audio,cpu,dai,bitclock-master		: if needed
+- simple-audio,cpu,dai,frame-inversion		: if needed
+- simple-audio,cpu,dai,frame-master		: if needed
+- simple-audio,cpu,dai,system-clock-frequency	: system clock rate if needed
+
+- simple-audio,codec,controller			: phandle for CODEC DAI
+- simple-audio,codec,dai,name			: simple-audio CODEC DAI name
+- simple-audio,codec,dai,format			: see below
+- simple-audio,codec,dai,clock-gating		: if needed, see below
+- simple-audio,codec,dai,bitclock-inversion	: if needed
+- simple-audio,codec,dai,bitclock-master	: if needed
+- simple-audio,codec,dai,frame-inversion	: if needed
+- simple-audio,codec,dai,frame-master		: if needed
+- simple-audio,codec,dai,system-clock-frequency	: system clock rate if needed
+
+simple-audio,xxx,dai,format
+	"i2s"
+	"right_j"
+	"left_j"
+	"dsp_a"
+	"dsp_b"
+	"ac97"
+	"pdm"
+	"msb"
+	"lsb"
+
+simple-audio,xxx,dai,clock-gating
+	"continuous"
+	"gated"
+
+Example:
+
+fsi_ak4642 {
+	compatible = "simple-audio";
+
+	simple-audio,card-name = "FSI2A-AK4648";
+	simple-audio,platform,controller = <&sh_fsi2>;
+
+	simple-audio,cpu,dai,name = "fsia-dai";
+	simple-audio,cpu,dai,format = "left_j";
+
+	simple-audio,codec,controller = <&ak4648>;
+	simple-audio,codec,dai,name = "ak4642-hifi";
+	simple-audio,codec,dai,format = "left_j";
+	simple-audio,codec,dai,bitclock-master;
+	simple-audio,codec,dai,frame-master;
+	simple-audio,codec,dai,system-clock-frequency = <11289600>;
+};
+
+&i2c0 {
+	ak4648: ak4648@0x12 {
+		compatible = "asahi-kasei,ak4648";
+		reg = <0x12>;
+	};
+};
+
+sh_fsi2: sh_fsi2@0xec230000 {
+	compatible = "renesas,sh_fsi2";
+	reg = <0xec230000 0x400>;
+	interrupt-parent = <&gic>;
+	interrupts = <0 146 0x4>;
+};
