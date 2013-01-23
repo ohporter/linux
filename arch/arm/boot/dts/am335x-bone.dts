@@ -26,7 +26,7 @@
 
 	am33xx_pinmux: pinmux@44e10800 {
 		pinctrl-names = "default";
-		pinctrl-0 = <&user_leds_s0 &spi1_pins_s0 &lcd_pins_s0 &gpevt_pins_s0>;
+		pinctrl-0 = <&user_leds_s0 &i2c3_pins_s0 &bone_audio_cape_pins_s0>;
 
 		user_leds_s0: user_leds_s0 {
 			pinctrl-single,pins = <
@@ -34,6 +34,22 @@
 				0x58 0x17	/* gpmc_a6.gpio1_22, OUTPUT_PULLUP | MODE7 */
 				0x5c 0x7	/* gpmc_a7.gpio1_23, OUTPUT | MODE7 */
 				0x60 0x17	/* gpmc_a8.gpio1_24, OUTPUT_PULLUP | MODE7 */
+			>;
+		};
+
+		i2c3_pins_s0: i2c3_pins_s0 {
+			pinctrl-single,pins = <
+				0x178 0x73	/* uart1_rtsn.i2c2_scl, SLEWCTRL_SLOW | INPUT_PULLUP | MODE3 */
+				0x17c 0x73	/* uart1_ctsn.i2c2_sda, SLEWCTRL_SLOW | INPUT_PULLUP | MODE3 */
+			>;
+		};
+
+		bone_audio_cape_pins_s0: bone_audio_cape_pins_s0 {
+			pinctrl-single,pins = <
+				0x190 0x20	/* mcasp0_aclkx.mcasp0_aclkx, INPUT | MODE0 */
+				0x194 0x20	/* mcasp0_fsx.mcasp0_fsx, INPUT | MODE0 */
+				0x19c 0x22	/* mcasp0_ahclkr.mcasp0_axr2, INPUT | MODE2 */
+				0x1ac 0x22	/* mcasp0_ahclkx.mcasp0_axr3, INPUT | MODE2 */
 			>;
 		};
 
@@ -79,11 +95,18 @@
 
 		};
 
-		gpevt {
-			compatible = "gpevt";
-			dmas = <&edma 12>;
-			dma-names = "gpioevt";
-			gpio-evt = <&gpio3 2 0>;
+		i2c3: i2c@4819c000 {
+			status = "okay";
+			clock-frequency = <100000>;
+
+			tlv320aic3x: tlv320aic3x@1b {
+				compatible = "ti,tlv320aic3x";
+				reg = <0x1b>;
+				IOVDD-supply = <&dcdc1_reg>;
+				DVDD-supply = <&bone_audio_1v8_reg>;	
+				AVDD-supply = <&dcdc1_reg>;
+				DRVDD-supply = <&dcdc1_reg>;
+			};
 		};
 	};
 
@@ -115,6 +138,35 @@
 			gpios = <&gpio2 24 0>;
 			default-state = "off";
 		};
+	};
+
+	bone_audio_cape {
+		compatible = "simple-audio";
+		simple-audio,card-name = "BBONE-DVI+AUDIO";
+
+		simple-audio,platform,controller = <&mcasp0>;
+		simple-audio,cpu,dai,name = "48038000.mcasp";
+		simple-audio,cpu,dai,format = "dsp_b";
+		simple-audio,cpu,dai,bitclock-master;
+		simple-audio,cpu,dai,frame-master;
+		simple-audio,cpu,dai,bitclock-inversion;
+		simple-audio,cpu,dai,system-clock-frequency = <12000000>;
+
+		simple-audio,codec,controller = <&tlv320aic3x>;
+		simple-audio,codec,dai,name = "tlv320aic3x-hifi";
+		simple-audio,codec,dai,format = "dsp_b";
+		simple-audio,codec,dai,bitclock-master;
+		simple-audio,codec,dai,frame-master;
+		simple-audio,codec,dai,bitclock-inversion;
+		simple-audio,codec,dai,system-clock-frequency = <12000000>;
+	};
+
+	bone_audio_1v8_reg: bone_audio_1v8_reg@0 {
+		compatible = "regulator-fixed";
+		regulator-name = "avdd_1v8";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-always-on;
 	};
 };
 
@@ -170,6 +222,20 @@
 
 &cpsw_emac1 {
 	phy_id = <&davinci_mdio>, <1>;
+};
+
+&mcasp0 {
+	status = "okay";
+
+	op-mode = <0>;
+	tdm-slots = <2>;
+	num-serializer = <16>;
+	serial-dir = < 0 0 2 1
+		       0 0 0 0
+		       0 0 0 0
+		       0 0 0 0 >;
+	tx-num-evt = <1>;
+	rx-num-evt = <1>;
 };
 
 &mmc1 {
