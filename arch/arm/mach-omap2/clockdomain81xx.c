@@ -15,8 +15,6 @@
 
 #include <linux/types.h>
 
-#include <plat/prcm.h>
-
 #include "prcm81xx.h"
 #include "prm.h"
 #include "clockdomain.h"

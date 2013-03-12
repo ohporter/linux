@@ -17,8 +17,6 @@
 #include <linux/errno.h>
 #include <linux/delay.h>
 
-#include <plat/prcm.h>
-
 #include "powerdomain.h"
 #include "prcm81xx.h"
 

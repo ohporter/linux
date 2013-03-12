@@ -19,7 +19,7 @@
 #include <linux/errno.h>
 #include <linux/io.h>
 
-#include <plat/common.h>
+#include "common.h"
 
 #include "powerdomain.h"
 

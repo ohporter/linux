@@ -21,6 +21,7 @@
 #include "prcm81xx.h"
 #include "prcm814x.h"
 #include "prcm816x.h"
+#include "soc.h"
 
 static struct powerdomain alwon_814x_pwrdm = {
 	.name		= "alwon_pwrdm",

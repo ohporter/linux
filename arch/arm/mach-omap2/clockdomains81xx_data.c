@@ -24,6 +24,7 @@
 #include "prcm814x.h"
 #include "prcm816x.h"
 #include "prcm-regbits-81xx.h"
+#include "soc.h"
 
 static struct clockdomain alwon_mpu_81xx_clkdm = {
 	.name		= "alwon_mpu_clkdm",
