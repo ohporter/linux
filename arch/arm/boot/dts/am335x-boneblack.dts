@@ -30,6 +30,12 @@
 };
 
 &am33xx_pinmux {
+	ecap2_in_pins: ecap2_pins {
+		pinctrl-single,pins = <
+			0x19c 0x34	/* mcasp0_ahclkr.ecap2_in_pwm2_out MODE4/RECV */
+		>;
+	};
+
 	nxp_hdmi_bonelt_pins: nxp_hdmi_bonelt_pins {
 		pinctrl-single,pins = <
 			0x1b0 0x03      /* xdma_event_intr0, OMAP_MUX_MODE3 | AM33XX_PIN_OUTPUT */
@@ -59,6 +65,16 @@
 		pinctrl-single,pins = <
 			0x1b0 0x03      /* xdma_event_intr0, OMAP_MUX_MODE3 | AM33XX_PIN_OUTPUT */
 		>;
+	};
+};
+
+&epwmss2 {
+	status = "okay";
+
+	ecap2: ecap@48304100 {
+		status = "okay";
+		pinctrl-names = "default";
+		pinctrl-0 = <&ecap2_in_pins>;
 	};
 };
 
