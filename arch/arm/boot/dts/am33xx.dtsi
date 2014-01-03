@@ -582,6 +582,8 @@
 				compatible = "ti,am33xx-ecap";
 				#pwm-cells = <3>;
 				reg = <0x48300100 0x80>;
+				interrupts = <31>;
+				interrupt-names = "ecap0";
 				ti,hwmods = "ecap0";
 				status = "disabled";
 			};
@@ -610,6 +612,8 @@
 				compatible = "ti,am33xx-ecap";
 				#pwm-cells = <3>;
 				reg = <0x48302100 0x80>;
+				interrupts = <47>;
+				interrupt-names = "ecap1";
 				ti,hwmods = "ecap1";
 				status = "disabled";
 			};
@@ -638,6 +642,8 @@
 				compatible = "ti,am33xx-ecap";
 				#pwm-cells = <3>;
 				reg = <0x48304100 0x80>;
+				interrupts = <61>;
+				interrupt-names = "ecap2";
 				ti,hwmods = "ecap2";
 				status = "disabled";
 			};
