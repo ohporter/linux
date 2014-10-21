@@ -59,6 +59,9 @@ extern int of_gpio_simple_xlate(struct gpio_chip *gc,
 				const struct of_phandle_args *gpiospec,
 				u32 *flags);
 
+extern struct gpio_desc *of_get_gpio_hog(struct device_node *np, int index,
+					 const char **name,
+					 unsigned long *flags);
 #else /* CONFIG_OF_GPIO */
 
 /* Drivers may not strictly depend on the GPIO support, so let them link. */
@@ -77,6 +80,14 @@ static inline int of_gpio_simple_xlate(struct gpio_chip *gc,
 
 static inline void of_gpiochip_add(struct gpio_chip *gc) { }
 static inline void of_gpiochip_remove(struct gpio_chip *gc) { }
+
+static inline struct gpio_desc *of_get_gpio_hog(struct device_node *np,
+						int index,
+						const char **name,
+						unsigned long *flags)
+{
+	return ERR_PTR(-ENOSYS);
+}
 
 #endif /* CONFIG_OF_GPIO */
 

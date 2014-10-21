@@ -55,6 +55,9 @@ static DEFINE_MUTEX(gpio_lookup_lock);
 static LIST_HEAD(gpio_lookup_list);
 LIST_HEAD(gpio_chips);
 
+struct gpio_desc *__must_check gpiod_get_hog_index(struct device *dev,
+						   unsigned int idx);
+
 static inline void desc_set_label(struct gpio_desc *d, const char *label)
 {
 	d->label = label;
@@ -226,6 +229,8 @@ int gpiochip_add(struct gpio_chip *chip)
 	int		status = 0;
 	unsigned	id;
 	int		base = chip->base;
+	struct gpio_desc	*desc;
+	int		i;
 
 	if ((!gpio_is_valid(base) || !gpio_is_valid(base + chip->ngpio - 1))
 			&& base >= 0) {
@@ -274,6 +279,16 @@ int gpiochip_add(struct gpio_chip *chip)
 
 	of_gpiochip_add(chip);
 	acpi_gpiochip_add(chip);
+
+	/*
+	 * Instantiate GPIO hogs
+	 * There shouldn't be mores hogs then gpio available on this chip
+	 */
+	for (i = 0; i < chip->ngpio; i++) {
+		desc = gpiod_get_hog_index(chip->dev, i);
+		if (IS_ERR(desc))
+			break;
+	}
 
 	if (status)
 		goto fail;
@@ -1740,6 +1755,72 @@ struct gpio_desc *__must_check __gpiod_get_index_optional(struct device *dev,
 	return desc;
 }
 EXPORT_SYMBOL_GPL(__gpiod_get_index_optional);
+
+/**
+ * gpiod_get_hog_index - obtain a GPIO from a multi-index GPIO hog
+ * @dev:	GPIO consumer
+ * @idx:	index of the GPIO to obtain
+ *
+ * This should only be used by the gpiochip_add to request/set GPIO initial
+ * configuration.
+ *
+ * Return a valid GPIO descriptor, or an IS_ERR() condition in case of error.
+ */
+struct gpio_desc *__must_check gpiod_get_hog_index(struct device *dev,
+						   unsigned int idx)
+{
+	struct gpio_desc *desc = NULL;
+	int err;
+	unsigned long flags;
+	const char *name;
+
+	/* Using device tree? */
+	if (IS_ENABLED(CONFIG_OF) && dev && dev->of_node)
+		desc = of_get_gpio_hog(dev->of_node, idx, &name, &flags);
+
+	if (!desc)
+		return ERR_PTR(-ENOTSUPP);
+	else if (IS_ERR(desc))
+		return desc;
+
+	dev_dbg(dev, "gpio-hog: GPIO:%d (%s) as %s%s\n",
+		desc_to_gpio(desc), name, (flags&GPIOF_DIR_IN)?"input":"output",
+		(flags&GPIOF_DIR_IN)?"":(flags&GPIOF_INIT_HIGH)?"/high":"/low");
+
+	err = gpiod_request(desc, name);
+	if (err)
+		return ERR_PTR(err);
+
+	if (flags & GPIOF_OPEN_DRAIN)
+		set_bit(FLAG_OPEN_DRAIN, &desc->flags);
+
+	if (flags & GPIOF_OPEN_SOURCE)
+		set_bit(FLAG_OPEN_SOURCE, &desc->flags);
+
+	if (flags & GPIOF_ACTIVE_LOW)
+		set_bit(FLAG_ACTIVE_LOW, &desc->flags);
+
+	if (flags & GPIOF_DIR_IN)
+		err = gpiod_direction_input(desc);
+	else
+		err = gpiod_direction_output_raw(desc,
+				(flags & GPIOF_INIT_HIGH) ? 1 : 0);
+
+	if (err)
+		goto free_gpio;
+
+	if (flags & GPIOF_EXPORT) {
+		err = gpiod_export(desc, flags & GPIOF_EXPORT_CHANGEABLE);
+		if (err)
+			goto free_gpio;
+	}
+
+	return desc;
+
+free_gpio:
+	gpiod_free(desc);
+	return ERR_PTR(err);
+}
 
 /**
  * gpiod_put - dispose of a GPIO descriptor

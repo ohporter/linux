@@ -103,6 +103,26 @@ Every GPIO controller node must contain both an empty "gpio-controller"
 property, and a #gpio-cells integer property, which indicates the number of
 cells in a gpio-specifier.
 
+It might contain GPIO hog definitions. GPIO hogging is a mechanism providing
+automatic GPIO request and configuration as part of the gpio-controller's
+driver probe function.
+
+Each GPIO hog definition is represented as a child node of the GPIO controller.
+Required properties:
+- gpios: store the gpio information (id, flags, ...). Shall contain the
+  number of cells specified in its parent node (GPIO controller node).
+- input: a property specifying to set the GPIO direction as input.
+- output-high: a property specifying to set the GPIO direction to output with
+  the value high.
+- output-low: a property specifying to set the GPIO direction to output with
+  the value low.
+
+Optional properties:
+- line-name: the GPIO label name. If not present the node name is used.
+
+A GPIO controller can request GPIO hogs using the "gpio-hogs" property, which
+encodes a list of requested GPIO hogs.
+
 Example of two SOC GPIO banks defined as gpio-controller nodes:
 
 	qe_pio_a: gpio-controller@1400 {
@@ -110,6 +130,19 @@ Example of two SOC GPIO banks defined as gpio-controller nodes:
 		reg = <0x1400 0x18>;
 		gpio-controller;
 		#gpio-cells = <2>;
+		gpio-hogs = <&line_b>;
+
+		/* line_a hog is defined but not enabled in this example*/
+		line_a: line_a {
+			gpios = <5 0>;
+			input;
+		};
+
+		line_b: line_b {
+			gpios = <6 0>;
+			output-low;
+			line-name = "foo-bar-gpio";
+		};
 	};
 
 	qe_pio_e: gpio-controller@1460 {

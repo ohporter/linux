@@ -111,6 +111,105 @@ int of_get_named_gpio_flags(struct device_node *np, const char *list_name,
 EXPORT_SYMBOL(of_get_named_gpio_flags);
 
 /**
+ * of_get_gpio_hog() - Get a GPIO hog descriptor, names and flags for GPIO API
+ * @np:		device node to get GPIO from
+ * @index:	index of the GPIO
+ * @name:	GPIO line name
+ * @flags:	a flags pointer to fill in
+ *
+ * Returns GPIO descriptor to use with Linux GPIO API, or one of the errno
+ * value on the error condition.
+ */
+struct gpio_desc *of_get_gpio_hog(struct device_node *np, int index,
+				  const char **name, unsigned long *flags)
+{
+	struct device_node *cfg_np, *chip_np;
+	enum of_gpio_flags xlate_flags;
+	unsigned long req_flags = 0;
+	struct gpio_desc *desc;
+	struct gg_data gg_data = {
+		.flags = &xlate_flags,
+		.out_gpio = NULL,
+	};
+	u32 tmp;
+	int i;
+	int ret;
+
+	cfg_np = of_parse_phandle(np, "gpio-hogs", index);
+	if (!cfg_np)
+		return ERR_PTR(-EINVAL);
+
+	chip_np = cfg_np->parent;
+	if (!chip_np) {
+		desc = ERR_PTR(-EINVAL);
+		goto out;
+	}
+
+	ret = of_property_read_u32(chip_np, "#gpio-cells", &tmp);
+	if (ret) {
+		desc = ERR_PTR(ret);
+		goto out;
+	}
+
+	if (tmp > MAX_PHANDLE_ARGS) {
+		desc = ERR_PTR(-EINVAL);
+		goto out;
+	}
+
+	gg_data.gpiospec.args_count = tmp;
+	gg_data.gpiospec.np = chip_np;
+	for (i = 0; i < tmp; i++) {
+		ret = of_property_read_u32(cfg_np, "gpios",
+					   &gg_data.gpiospec.args[i]);
+		if (ret) {
+			desc = ERR_PTR(ret);
+			goto out;
+		}
+	}
+
+	gpiochip_find(&gg_data, of_gpiochip_find_and_xlate);
+	if (!gg_data.out_gpio) {
+		if (cfg_np->parent == np)
+			desc = ERR_PTR(-ENXIO);
+		else
+			desc = ERR_PTR(-EPROBE_DEFER);
+
+		goto out;
+	}
+
+	if (xlate_flags & OF_GPIO_ACTIVE_LOW)
+		req_flags |= GPIOF_ACTIVE_LOW;
+
+	if (of_property_read_bool(cfg_np, "input")) {
+		req_flags |= GPIOF_DIR_IN;
+	} else if (of_property_read_bool(cfg_np, "output-high")) {
+		req_flags |= GPIOF_INIT_HIGH;
+	} else if (!of_property_read_bool(cfg_np, "output-low")) {
+		desc = ERR_PTR(-EINVAL);
+		goto out;
+	}
+
+	if (of_property_read_bool(cfg_np, "open-drain-line"))
+		req_flags |= GPIOF_OPEN_DRAIN;
+
+	if (of_property_read_bool(cfg_np, "open-source-line"))
+		req_flags |= GPIOF_OPEN_DRAIN;
+
+	if (name && of_property_read_string(cfg_np, "line-name", name))
+		*name = cfg_np->name;
+
+	if (flags)
+		*flags = req_flags;
+
+	desc = gg_data.out_gpio;
+
+out:
+	of_node_put(cfg_np);
+
+	return desc;
+}
+
+/**
  * of_gpio_simple_xlate - translate gpio_spec to the GPIO number and flags
  * @gc:		pointer to the gpio_chip structure
  * @np:		device node of the GPIO chip
