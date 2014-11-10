@@ -25,13 +25,8 @@
 	vmmc-supply = <&vmmcsd_fixed>;
 };
 
-&mmc2 {
-	vmmc-supply = <&vmmcsd_fixed>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&emmc_pins>;
-	bus-width = <8>;
-	status = "okay";
-};
+/* BeagleBone WL1835MOD cape support */
+#include "am335x-boneblack-wl1835mod-cape.dtsi"
 
 &am33xx_pinmux {
 	nxp_hdmi_bonelt_pins: nxp_hdmi_bonelt_pins {
@@ -77,6 +72,7 @@
 		pinctrl-names = "default", "off";
 		pinctrl-0 = <&nxp_hdmi_bonelt_pins>;
 		pinctrl-1 = <&nxp_hdmi_bonelt_off_pins>;
-		status = "okay";
+		/* Disabled to avoid pin conflicts with WL1835MOD cape */
+		status = "disabled";
 	};
 };
