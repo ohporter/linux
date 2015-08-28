@@ -1,0 +1,98 @@
+%YAML 1.2
+---
+id: skel-device
+
+title: Skeleton Device
+
+maintainer:
+  - name: Skeleton Person <skel@kernel.org>
+
+description: >
+  The Skeleton Device binding represents the SK11 device produced by
+  the Skeleton Corporation. The binding can also support compatible
+  clones made by second source vendors.
+
+compatible:
+  - name: "skel,sk11"
+  - name: "faux,fx11"
+    description: A clone of the original sk11 device
+
+required:
+  - name: "reg"
+    description: chip select address of skeleton device
+    reference: spi-slave
+  - name: "spi-max-frequency"
+    description: >
+      Maximum SPI clocking speed of skeleton device in Hz, must be
+      1000000
+    reference: spi-slave
+
+optional:
+  - name: "spi-cs-high"
+    description: >
+      Set if skeleton device configuration straps are set for chip
+      select polarity high
+    reference: spi-slave
+
+deprecated:
+  - name: "skel,deprecated1"
+    description: >
+      First of two deprecated properties.
+  - name: "skel,deprecated2"
+    description: >
+      Second of two deprecated properties.
+
+example:
+  - dts: |
+      sk11@0 {
+              compatible = "skel,sk11";
+              reg = <0>;
+              spi-max-frequency = <1000000>;
+              spi-cs-high;
+      };
+...
+
+---
+id: skel-mini
+
+title: Skeleton Mini Device
+
+maintainer:
+  - name: Rogue Developer <rogue@gmail.com>
+
+description: >
+  The Skeleton Mini Device binding represents the SK47x series devices
+  produced by the Skeleton Corporation.
+
+compatible:
+  - name: "skel,sk472"
+  - name: "skel,sk473"
+  - name: "skel,sk474"
+  - deprecated: "skel,sk47x"
+
+required:
+  - name: "reg"
+    description: offset and length of the registers
+
+optional:
+  - name: "skel,sync-mode"
+    description: Enable synchronous transfer mode
+
+example:
+  - dts: |
+      sk472@beef0000 {
+              compatible = "skel,sk472";
+              reg = <0xbeef0000 0x100>;
+      };
+    description: >
+      Demonstrates an SK472 in normal mode.
+
+  - dts: |
+      sk474@dead0000 {
+              compatible = "skel,sk474";
+              reg = <0xdead0000 0x100>;
+              skel,sync-mode;
+      };
+    description: >
+      Demonstrates an SK474 in synchronous mode.
+...
